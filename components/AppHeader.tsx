@@ -1,7 +1,6 @@
 "use client"
 import Link from "next/link"
 import { useAuth0 } from "@auth0/auth0-react"
-import { useEffect, useState } from "react"
 
 function getDisplayName(name?: string | null, email?: string | null) {
   return name ?? email ?? "User"
@@ -9,20 +8,17 @@ function getDisplayName(name?: string | null, email?: string | null) {
 
 export function AppHeader() {
   const { user, loginWithRedirect, logout, isLoading } = useAuth0()
-  const [mounted, setMounted] = useState(false)
-
-  useEffect(() => setMounted(true), [])
 
   const displayName = getDisplayName(user?.name, user?.email)
 
   return (
-    <header className="sticky top-0 z-50 border-b border-[var(--border)] bg-white/95 backdrop-blur">
+    <header className="sticky top-0 z-50 border-b border-[var(--border)] bg-white">
       <div className="mx-auto flex h-16 w-full max-w-5xl items-center justify-between px-4 sm:px-6">
         <Link href="/" className="text-base font-semibold tracking-tight text-slate-900">
-          MedBill Agent
+          Redline
         </Link>
-        <nav className="flex items-center gap-3">
-          {mounted && !isLoading && user ? (
+        <nav className="flex items-center gap-2 sm:gap-3">
+          {!isLoading && user ? (
             <>
               <Link
                 href="/dashboard"
@@ -30,7 +26,7 @@ export function AppHeader() {
               >
                 Dashboard
               </Link>
-              <div className="hidden items-center gap-2 rounded-md border border-[var(--border)] bg-white px-3 py-1.5 sm:flex">
+              <div className="hidden items-center gap-2 rounded-md border border-[var(--border)] bg-slate-50 px-3 py-1.5 sm:flex">
                 {user.picture ? (
                   // eslint-disable-next-line @next/next/no-img-element
                   <img
@@ -50,10 +46,10 @@ export function AppHeader() {
                 Logout
               </button>
             </>
-          ) : mounted && !isLoading ? (
+          ) : !isLoading ? (
             <button
               onClick={() => loginWithRedirect()}
-              className="rounded-md bg-slate-900 px-4 py-2 text-sm font-medium text-white hover:bg-slate-800"
+              className="rounded-md bg-slate-900 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-slate-800"
             >
               Login
             </button>
