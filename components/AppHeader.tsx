@@ -1,14 +1,18 @@
-/* eslint-disable @next/next/no-html-link-for-pages */
+"use client"
 import Link from "next/link"
-import { auth0 } from "@/lib/auth0"
+import { useAuth0 } from "@auth0/auth0-react"
+import { useEffect, useState } from "react"
 
 function getDisplayName(name?: string | null, email?: string | null) {
   return name ?? email ?? "User"
 }
 
-export async function AppHeader() {
-  const session = await auth0.getSession()
-  const user = session?.user
+export function AppHeader() {
+  const { user, loginWithRedirect, logout, isLoading } = useAuth0()
+  const [mounted, setMounted] = useState(false)
+
+  useEffect(() => setMounted(true), [])
+
   const displayName = getDisplayName(user?.name, user?.email)
 
   return (
@@ -17,9 +21,8 @@ export async function AppHeader() {
         <Link href="/" className="text-base font-semibold tracking-tight text-slate-900">
           MedBill Agent
         </Link>
-
         <nav className="flex items-center gap-3">
-          {user ? (
+          {mounted && !isLoading && user ? (
             <>
               <Link
                 href="/dashboard"
@@ -40,21 +43,21 @@ export async function AppHeader() {
                   {displayName}
                 </span>
               </div>
-              <a
-                href="/auth/logout?returnTo=/"
+              <button
+                onClick={() => logout({ logoutParams: { returnTo: window.location.origin } })}
                 className="rounded-md border border-[var(--border)] bg-white px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50"
               >
                 Logout
-              </a>
+              </button>
             </>
-          ) : (
-            <a
-              href="/auth/login?returnTo=/dashboard"
+          ) : mounted && !isLoading ? (
+            <button
+              onClick={() => loginWithRedirect()}
               className="rounded-md bg-slate-900 px-4 py-2 text-sm font-medium text-white hover:bg-slate-800"
             >
               Login
-            </a>
-          )}
+            </button>
+          ) : null}
         </nav>
       </div>
     </header>

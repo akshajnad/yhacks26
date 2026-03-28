@@ -8,7 +8,6 @@
 
 import { Lava } from "@lavapayments/nodejs"
 
-const OPENAI_CHAT_URL = "https://api.openai.com/v1/chat/completions"
 const MODEL = "gpt-4o"
 
 interface ChatMessage {
@@ -35,9 +34,15 @@ export async function analyze(
   messages: ChatMessage[],
   temperature = 0.1
 ): Promise<string> {
-  const lava = new Lava() // reads LAVA_SECRET_KEY from env
+  const forwardToken = process.env.LAVA_FORWARD_TOKEN
+  if (!forwardToken) {
+    throw new Error("LAVA_FORWARD_TOKEN is not set in environment")
+  }
 
-  console.log("[transport] Calling OpenAI via Lava gateway")
+  const lava = new Lava() // Still needed to access lava.providers easily
+  const OPENAI_CHAT_URL = lava.providers.openai + "/chat/completions"
+
+  console.log("[transport] Calling OpenAI via Lava forward token")
   console.log("[transport] Endpoint:", OPENAI_CHAT_URL)
   console.log("[transport] Model:", MODEL)
   console.log("[transport] Messages count:", messages.length)
@@ -45,18 +50,28 @@ export async function analyze(
   let data: ChatCompletionResponse
 
   try {
-    data = await lava.gateway(OPENAI_CHAT_URL, {
-      body: {
+    const response = await fetch(OPENAI_CHAT_URL, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${forwardToken}`,
+      },
+      body: JSON.stringify({
         model: MODEL,
         messages,
         temperature,
         response_format: { type: "json_object" },
-      },
-    }) as ChatCompletionResponse
+      }),
+    })
+
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status} - ${await response.text()}`)
+    }
+    data = (await response.json()) as ChatCompletionResponse
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err)
-    console.error("[transport] Lava gateway error:", message)
-    throw new Error(`Lava gateway request failed: ${message}`)
+    console.error("[transport] Lava proxy error:", message)
+    throw new Error(`Lava proxy request failed: ${message}`)
   }
 
   const content = data?.choices?.[0]?.message?.content

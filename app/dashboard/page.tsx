@@ -1,14 +1,29 @@
-/* eslint-disable @next/next/no-html-link-for-pages */
-import { auth0 } from "@/lib/auth0"
+"use client"
+
+import { useAuth0 } from "@auth0/auth0-react"
+import { useEffect, useState } from "react"
 
 function profileValue(value?: string | null) {
   if (!value) return "Not provided"
   return value
 }
 
-export default async function DashboardPage() {
-  const session = await auth0.getSession()
-  const user = session?.user
+export default function DashboardPage() {
+  const { user, isLoading, loginWithRedirect, logout } = useAuth0()
+  const [mounted, setMounted] = useState(false)
+
+  useEffect(() => setMounted(true), [])
+
+  if (!mounted || isLoading) {
+    return (
+      <section className="mx-auto w-full max-w-3xl px-4 py-16 sm:px-6">
+        <div className="rounded-xl border border-[var(--border)] bg-white p-8 shadow-sm">
+          <h1 className="text-2xl font-semibold tracking-tight text-slate-900">Dashboard</h1>
+          <p className="mt-3 text-sm leading-6 text-slate-600">Loading profile...</p>
+        </div>
+      </section>
+    )
+  }
 
   if (!user) {
     return (
@@ -18,12 +33,12 @@ export default async function DashboardPage() {
           <p className="mt-3 text-sm leading-6 text-slate-600">
             You are not signed in. Use Auth0 login to view your profile dashboard.
           </p>
-          <a
-            href="/auth/login?returnTo=/dashboard"
+          <button
+            onClick={() => loginWithRedirect()}
             className="mt-6 inline-flex rounded-md bg-slate-900 px-4 py-2 text-sm font-medium text-white hover:bg-slate-800"
           >
             Login with Auth0
-          </a>
+          </button>
         </div>
       </section>
     )
@@ -69,12 +84,12 @@ export default async function DashboardPage() {
         </dl>
 
         <div className="mt-8 border-t border-[var(--border)] pt-6">
-          <a
-            href="/auth/logout?returnTo=/"
+          <button
+            onClick={() => logout({ logoutParams: { returnTo: window.location.origin } })}
             className="inline-flex rounded-md border border-[var(--border)] bg-white px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50"
           >
             Logout
-          </a>
+          </button>
         </div>
       </div>
     </section>
