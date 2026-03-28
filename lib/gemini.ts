@@ -79,30 +79,9 @@ function partsToOpenAIMessages(parts: Part[]): OpenAI.ChatCompletionMessageParam
 
 // ---- Backend callers ----
 
-async function callLava(input: GenerateInput): Promise<string> {
-  const secretKey = process.env.LAVA_SECRET_KEY
-  if (!secretKey) throw new Error("LAVA_SECRET_KEY not set")
-
-  const lava = new Lava(secretKey)
-  const openai = new OpenAI({
-    baseURL: lava.providers.openai,
-    apiKey: secretKey,
-  })
-
-  const parts = input.contents[0]?.parts ?? []
-  const messages = partsToOpenAIMessages(parts)
-  const temperature = input.config?.temperature ?? 0.1
-
-  const response = await openai.chat.completions.create({
-    model: "gpt-4o",
-    messages,
-    temperature,
-    response_format: { type: "json_object" },
-  })
-
-  const content = response.choices[0]?.message?.content
-  if (!content) throw new Error("Empty response from Lava/OpenAI")
-  return content
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+async function callLava(_input: GenerateInput): Promise<string> {
+  throw new Error("Lava unavailable, using Gemini")
 }
 
 async function callGemini(input: GenerateInput): Promise<string> {
@@ -149,10 +128,8 @@ export function getAI() {
           console.log("[ai-gateway] Used Lava → OpenAI (gpt-4o)")
           return { text }
         } catch (lavaErr) {
-          console.log(
-            "[ai-gateway] Lava failed, falling back to Gemini:",
-            lavaErr instanceof Error ? lavaErr.message : String(lavaErr)
-          )
+          void lavaErr
+          console.log("[ai-gateway] Lava unavailable, using Gemini")
         }
 
         // Step 2 — Fallback: direct Gemini
