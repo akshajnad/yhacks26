@@ -40,6 +40,11 @@ export interface RecommendedAction {
   // Future: agentType: "email" | "call" | "letter" | "portal"
 }
 
+export interface RelevantLaw {
+  title: string
+  description: string
+}
+
 export interface AnalysisResult {
   /** UUID — ready for DB persistence when Supabase is added */
   caseId: string
@@ -48,6 +53,8 @@ export interface AnalysisResult {
   /** Plain-English explanation of findings */
   explanation: string
   recommendedActions: RecommendedAction[]
+  /** Up to 3 relevant laws based on detected issues */
+  laws: RelevantLaw[]
   /** ISO 8601 timestamp */
   analyzedAt: string
 }

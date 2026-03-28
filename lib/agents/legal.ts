@@ -1,20 +1,26 @@
-import { Lava } from "@lavapayments/nodejs";
-const lava = new Lava(process.env.LAVA_SECRET_KEY);
-
-interface LineItem {
-  code: string
-  description: string
-  amount: number
+export interface LineItem {
+  code: string;
+  description: string;
+  amount: string;
 }
 
-async function researchMedicalBillingLaw(state: string, city: string, issue: string, lineItems: LineItem[] = []) {
+export interface LegalResearchParams {
+  state: string;
+  city: string;
+  issue: string;
+  lineItems?: LineItem[];
+}
+
+export function buildLegalPrompts({
+  state,
+  city,
+  issue,
+  lineItems = [],
+}: LegalResearchParams): { systemPrompt: string; userMessage: string } {
   const issueLC = issue.toLowerCase();
 
-  // ── Auto-detect issue context ──────────────────────────────────────────────
   const flags = {
-    isSurpriseBilling: /surprise.bill|out.of.network|balance.bill/.test(
-      issueLC,
-    ),
+    isSurpriseBilling: /surprise.bill|out.of.network|balance.bill/.test(issueLC),
     isEmergency: /emergency|er|emtala|urgent/.test(issueLC),
     isDenial: /deni|refused|not covered|rejected/.test(issueLC),
     isOvercharge: /overcharg|upcod|inflat|duplicate|excess/.test(issueLC),
@@ -30,81 +36,47 @@ async function researchMedicalBillingLaw(state: string, city: string, issue: str
     .filter(([, v]) => v)
     .map(([k]) => k);
 
-  // ── Build adaptive system prompt ───────────────────────────────────────────
-  const SYSTEM_PROMPT = `
-You are an expert medical billing attorney and legal researcher specializing in US healthcare law.
+  const systemPrompt = `You are a medical billing legal researcher. 
+STRICT OUTPUT RULE: Return ONLY a numbered list of exactly 5 laws. 
+NO PREAMBLE. NO META-COMMENTARY. NO THINKING BLOCKS. 
+DO NOT write things like "(User is saying...)" or "(The user wants...)". 
+DO NOT show your internal reasoning or thought process. 
+If you show anything other than the 5 numbered items, you have failed.
 
-Your job is to help patients dispute medical bills by identifying SPECIFIC laws, statutes,
-and regulations that REQUIRE hospitals or insurers to pay, reimburse, credit, or reduce charges.
+Format for each item:
+[number]. [Statute citation] — [What it requires the provider/insurer to do]. [How it applies to this patient's specific situation]. [One sentence the patient can say to invoke it.]
 
-The patient is located in: ${city}, ${state}.
-Their issue is: "${issue}"
-Detected issue types: ${activeFlags.length ? activeFlags.join(", ") : "general billing dispute"}
-
-RESEARCH INSTRUCTIONS:
-
-1. UNIVERSAL PROTECTIONS — laws that apply to ALL line items:
-   - Always check: No Surprises Act (42 U.S.C. § 300gg-111), ACA, ERISA, HIPAA
-   ${flags.isEmergency ? "- EMTALA (42 U.S.C. § 1395dd) — must be cited for emergency cases" : ""}
-   ${flags.isSurpriseBilling ? "- No Surprises Act IDR process and its ${state} equivalent" : ""}
-   ${flags.isMentalHealth ? "- Mental Health Parity and Addiction Equity Act (MHPAEA)" : ""}
-   ${flags.isMedicare ? "- CMS Medicare billing rules, MSP provisions" : ""}
-   ${flags.isMedicaid ? "- Medicaid EPSDT, state plan requirements" : ""}
-   - ${state}-specific: surprise billing law, prompt pay law, balance billing ban,
-     insurance code violations, Attorney General consumer protection statutes
-   - ${city} municipal health code protections if any exist
-
-2. LINE ITEM SPECIFIC PROTECTIONS — for each CPT code or service:
-   - Laws capping charges for that specific service
-   - Laws requiring coverage of that service
-   - Medicare reference rate applicability
-   - Prohibition on upcoding or unbundling for that code
-   ${flags.isAnesthesia ? "- Anesthesia-specific: No Surprises Act § 2799B-2, state anesthesia billing rules" : ""}
-
-3. OUTPUT FORMAT — strict hierarchy:
-
-## UNIVERSAL PROTECTIONS (ranked strongest to weakest)
-For each law:
-- Statute: [exact citation]
-- What it requires: [what hospital/insurer must do]
-- How to invoke: [exact language patient should use in dispute letter]
-- Applies to: [insured / uninsured / both]
-
-## LINE ITEM: [code] — [description]
-### 1. Strongest protection
-### 2. Supporting protections
-### 3. Dispute letter language for this line item
-
-## RECOMMENDED DISPUTE STRATEGY
-Summarize the top 3 most powerful arguments given this specific state, city, and issue.
-
-Always cite REAL statutes with exact section numbers. Do not generalize.
-`;
-
-  // ── Build user message ─────────────────────────────────────────────────────
-  const lineItemText = lineItems.length
-    ? `\nDisputed Line Items:\n${lineItems
-        .map(
-          (item, i) =>
-            `${i + 1}. CPT: ${item.code} | Service: ${item.description} | Billed: $${item.amount}`,
-        )
-        .join("\n")}`
-    : "\nNo specific line items provided — research general protections for this issue type.";
-
-  const userMessage = `
-State: ${state}
-City: ${city}
+Patient: ${city}, ${state}
 Issue: ${issue}
-${lineItemText}
+Type: ${activeFlags.length ? activeFlags.join(", ") : "general billing dispute"}`;
 
-Research all applicable federal, ${state} state, and ${city} local laws that REQUIRE
-the hospital or insurer to pay, reimburse, or reduce these charges.
-Provide a hierarchy from most to least applicable, with exact statute citations.
-`;
+  const lineItemText = lineItems.length
+    ? `Disputed Line Items:\n${lineItems
+      .map((item, i) => `${i + 1}. CPT: ${item.code} | ${item.description} | $${item.amount}`)
+      .join("\n")}`
+    : "No specific line items.";
 
-  // ── API call ───────────────────────────────────────────────────────────────
+  const userMessage = `${state}, ${city} | Issue: ${issue}\n${lineItemText}\n\nReturn exactly 5 numbered laws. 3 sentences each. Nothing else.`;
+
+  return { systemPrompt, userMessage };
+}
+
+/** Strip <think>…</think> blocks (and any other common reasoning wrappers) from model output */
+function stripThinking(content: string): string {
+  return content
+    .replace(/<think>[\s\S]*?<\/think>/gi, "")  // <think>...</think>
+    .replace(/<thinking>[\s\S]*?<\/thinking>/gi, "") // <thinking>...</thinking>
+    .replace(/^[\s\S]*?<\/think>/i, "")         // unclosed leading think block
+    .trim();
+}
+
+export async function researchMedicalBillingLaw(
+  params: LegalResearchParams,
+): Promise<string> {
+  const { systemPrompt, userMessage } = buildLegalPrompts(params);
+
   const response = await fetch(
-    "https://api.lava.so/v1/forward?u=https%3A%2F%2Fapi.perplexity.ai%2Fchat%2Fcompletions",
+    "https://api.lava.so/v1/forward?u=https%3A%2F%2Fapi.openai.com%2Fv1%2Fchat%2Fcompletions",
     {
       method: "POST",
       headers: {
@@ -112,29 +84,25 @@ Provide a hierarchy from most to least applicable, with exact statute citations.
         Authorization: `Bearer ${process.env.LAVA_FORWARD_TOKEN}`,
       },
       body: JSON.stringify({
-        model: "sonar-deep-research",
+        model: "gpt-4o-search-preview",
+        max_tokens: 500,
         messages: [
-          { role: "system", content: SYSTEM_PROMPT },
+          { role: "system", content: systemPrompt },
           { role: "user", content: userMessage },
         ],
-        search_domain_filter: [
-          "law.cornell.edu",
-          "cms.gov",
-          "dol.gov",
-          "hhs.gov",
-          `${state.toLowerCase().replace(/\s+/g, "")}.gov`,
-        ],
-        return_citations: true,
       }),
     },
   );
 
-  const data = await response.json();
-  return data.choices?.[0]?.message?.content;
-}
+  if (!response.ok) {
+    const errorText = await response.text();
+    throw new Error(`OpenAI API error (${response.status}): ${errorText}`);
+  }
 
-const result = await researchMedicalBillingLaw(
-  "California",
-  "Los Angeles",
-  "surprise billing after emergency room visit with out-of-network anesthesiologist",
-);
+  const data = await response.json();
+  const raw: string = data.choices?.[0]?.message?.content;
+  if (!raw)
+    throw new Error("No content returned from legal research agent");
+
+  return stripThinking(raw);
+}
