@@ -1,92 +1,68 @@
-"use client"
+/* eslint-disable @next/next/no-html-link-for-pages */
+import { auth0 } from "@/lib/auth0"
 
-import { useState } from "react"
-import { UploadZone } from "@/components/UploadZone"
-import { AnalysisResultDisplay } from "@/components/AnalysisResult"
-import type { AnalysisResult } from "@/types/analysis"
+const steps = [
+  {
+    title: "Upload bill + EOB",
+    description: "Parse provider bills and insurer EOBs into normalized claim data.",
+  },
+  {
+    title: "Run audit checks",
+    description: "Detect denials, duplicate lines, responsibility mismatches, and network issues.",
+  },
+  {
+    title: "Generate disputes",
+    description: "Create provider and insurance communication assets from the audit output.",
+  },
+]
 
-export default function Home() {
-  const [result, setResult] = useState<AnalysisResult | null>(null)
-  const [error, setError] = useState<string>("")
-
-  const handleResult = (r: AnalysisResult) => {
-    setResult(r)
-    setError("")
-    // Scroll to results
-    setTimeout(() => {
-      document.getElementById("results")?.scrollIntoView({ behavior: "smooth", block: "start" })
-    }, 100)
-  }
-
-  const handleNewAnalysis = () => {
-    setResult(null)
-    setError("")
-    window.scrollTo({ top: 0, behavior: "smooth" })
-  }
+export default async function Home() {
+  const session = await auth0.getSession()
+  const user = session?.user
 
   return (
-    <div className="mx-auto max-w-4xl px-4 py-10">
-      {/* Hero */}
-      <div className="mb-10 text-center">
-        <h1 className="mb-3 text-3xl font-bold tracking-tight text-[var(--foreground)] sm:text-4xl">
-          Medical Bill Analyzer
-        </h1>
-        <p className="mx-auto max-w-xl text-[var(--muted-foreground)]">
-          Upload a medical bill or Explanation of Benefits (EOB). Our AI identifies overcharges,
-          billing errors, denial flags, and No Surprises Act violations — then tells you exactly what to do next.
+    <section className="mx-auto w-full max-w-5xl px-4 py-16 sm:px-6">
+      <div className="rounded-2xl border border-[var(--border)] bg-white p-8 shadow-sm sm:p-10">
+        <p className="mb-4 inline-flex rounded-md border border-slate-200 bg-slate-50 px-3 py-1 text-xs font-semibold uppercase tracking-wide text-slate-600">
+          Audit + Communication Agent
         </p>
-      </div>
+        <h1 className="max-w-3xl text-3xl font-semibold tracking-tight text-slate-900 sm:text-4xl">
+          Catch medical billing issues and ship dispute-ready communication in minutes.
+        </h1>
+        <p className="mt-4 max-w-2xl text-base leading-7 text-slate-600">
+          MedBill Agent compares provider bills against insurance EOBs, identifies costly discrepancies, and prepares
+          professional follow-up actions for providers and payers.
+        </p>
 
-      {/* How it works */}
-      {!result && (
-        <div className="mb-8 grid grid-cols-1 gap-4 sm:grid-cols-3">
-          <Step num={1} title="Upload" desc="Drop your PDF bill or EOB, or an image of the document." />
-          <Step num={2} title="Analyze" desc="Gemini AI extracts key fields and detects billing issues." />
-          <Step num={3} title="Act" desc="Get plain-English explanations and recommended next steps." />
-        </div>
-      )}
-
-      {/* Upload zone */}
-      {!result && (
-        <div className="rounded-xl border border-[var(--border)] bg-[var(--card)] p-6 shadow-sm">
-          <UploadZone onResult={handleResult} onError={setError} />
-          {error && (
-            <div className="mt-4 rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700">
-              {error}
-            </div>
-          )}
-        </div>
-      )}
-
-      {/* Results */}
-      {result && (
-        <div id="results" className="space-y-4">
-          <div className="flex items-center justify-between">
-            <h2 className="text-xl font-semibold">Analysis Results</h2>
-            <button
-              onClick={handleNewAnalysis}
-              className="text-sm text-blue-600 hover:text-blue-800 hover:underline"
+        <div className="mt-8 flex flex-wrap items-center gap-3">
+          {user ? (
+            <a
+              href="/dashboard"
+              className="rounded-md bg-slate-900 px-5 py-2.5 text-sm font-medium text-white hover:bg-slate-800"
             >
-              Analyze another bill
-            </button>
-          </div>
-          <AnalysisResultDisplay result={result} />
+              Open dashboard
+            </a>
+          ) : (
+            <a
+              href="/auth/login?returnTo=/dashboard"
+              className="rounded-md bg-slate-900 px-5 py-2.5 text-sm font-medium text-white hover:bg-slate-800"
+            >
+              Log in to continue
+            </a>
+          )}
+          <span className="text-sm text-slate-500">No middleware, minimal App Router flow.</span>
         </div>
-      )}
-    </div>
-  )
-}
-
-function Step({ num, title, desc }: { num: number; title: string; desc: string }) {
-  return (
-    <div className="flex gap-3 rounded-lg border border-[var(--border)] bg-[var(--card)] p-4">
-      <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-blue-600 text-sm font-semibold text-white">
-        {num}
-      </span>
-      <div>
-        <p className="font-medium text-[var(--foreground)]">{title}</p>
-        <p className="text-sm text-[var(--muted-foreground)]">{desc}</p>
       </div>
-    </div>
+
+      <div className="mt-8 grid gap-4 md:grid-cols-3">
+        {steps.map((step, idx) => (
+          <article key={step.title} className="rounded-xl border border-[var(--border)] bg-white p-5 shadow-sm">
+            <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Step {idx + 1}</p>
+            <h2 className="mt-2 text-base font-semibold text-slate-900">{step.title}</h2>
+            <p className="mt-2 text-sm leading-6 text-slate-600">{step.description}</p>
+          </article>
+        ))}
+      </div>
+    </section>
   )
 }

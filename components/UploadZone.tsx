@@ -1,6 +1,5 @@
 "use client"
 
-import { useAuth0 } from "@auth0/auth0-react"
 import { useCallback, useEffect, useRef, useState } from "react"
 import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
@@ -15,8 +14,7 @@ const ACCEPTED_TYPES = ["application/pdf", "image/jpeg", "image/jpg", "image/png
 const ACCEPTED_DISPLAY = "PDF, JPG, PNG, WebP"
 
 export function UploadZone({ onResult, onError }: UploadZoneProps) {
-  const { isAuthenticated, isLoading: authLoading, loginWithRedirect } = useAuth0()
-  const canUpload = isAuthenticated && !authLoading
+  const canUpload = true
 
   const [file, setFile] = useState<File | null>(null)
   const [isDragging, setIsDragging] = useState(false)
@@ -144,22 +142,7 @@ export function UploadZone({ onResult, onError }: UploadZoneProps) {
           <UploadIcon muted={!canUpload} />
         </div>
 
-        {authLoading ? (
-          <div className="text-center">
-            <p className="font-medium text-[var(--foreground)]">Checking sign-in…</p>
-            <p className="text-sm text-[var(--muted-foreground)]">Upload unlocks once you&apos;re signed in.</p>
-          </div>
-        ) : !isAuthenticated ? (
-          <div className="text-center">
-            <p className="font-medium text-[var(--foreground)]">Sign in to upload</p>
-            <p className="mx-auto mb-4 max-w-sm text-sm text-[var(--muted-foreground)]">
-              Medical bill analysis is available after you log in. Use the buttons in the header or below.
-            </p>
-            <Button type="button" onClick={() => loginWithRedirect()} size="default">
-              Log in to upload
-            </Button>
-          </div>
-        ) : file ? (
+        {file ? (
           <div className="text-center">
             <p className="font-medium text-green-700">{file.name}</p>
             <p className="text-sm text-[var(--muted-foreground)]">
