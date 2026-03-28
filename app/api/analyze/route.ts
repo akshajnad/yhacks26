@@ -74,23 +74,32 @@ export async function POST(req: NextRequest) {
     // --- Step 1: Extract text or prepare for vision ---
     let text: string | null = null
     let useVision = false
+    let images: string[] | undefined
 
     if (file.type === "application/pdf") {
-      const result = await extractFromPDF(buffer)
-      text = result.text
-      useVision = result.useVision
+      const extraction = await extractFromPDF(buffer)
+      text = extraction.text
+      useVision = extraction.useVision
+      images = extraction.images
+      console.log("[/api/analyze] PDF extraction:", {
+        textLength: text?.length ?? 0,
+        useVision,
+        renderedPages: images?.length ?? 0,
+      })
     } else {
-      const result = extractFromImage()
-      text = result.text
-      useVision = result.useVision
+      const extraction = extractFromImage()
+      text = extraction.text
+      useVision = extraction.useVision
+      console.log("[/api/analyze] Image file, using vision directly")
     }
 
-    // --- Step 2: Analyze with Gemini ---
-    const imageBase64 = useVision ? buffer.toString("base64") : null
+    // --- Step 2: Analyze with OpenAI via Lava ---
+    const imageBase64 = useVision && !images?.length ? buffer.toString("base64") : null
 
     const result: AnalysisResult = await analyzeDocument({
       text,
       imageBase64,
+      images,
       mimeType: file.type,
     })
 
@@ -100,10 +109,10 @@ export async function POST(req: NextRequest) {
 
     const message = err instanceof Error ? err.message : "Unknown error"
 
-    // Surface Gemini API errors clearly
-    if (message.includes("GEMINI_API_KEY")) {
+    // Surface Lava API errors clearly
+    if (message.includes("LAVA_SECRET_KEY")) {
       return NextResponse.json(
-        { error: "Gemini API key not configured. Set GEMINI_API_KEY in .env.local." },
+        { error: "Lava API key not configured. Set LAVA_SECRET_KEY in .env.local." },
         { status: 500 }
       )
     }
