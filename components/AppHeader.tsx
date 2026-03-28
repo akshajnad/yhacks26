@@ -25,6 +25,12 @@ export function AppHeader() {
           {mounted && !isLoading && user ? (
             <>
               <Link
+                href="/legal"
+                className="rounded-md px-3 py-2 text-sm font-medium text-slate-600 hover:bg-slate-100 hover:text-slate-900"
+              >
+                Legal Research
+              </Link>
+              <Link
                 href="/dashboard"
                 className="rounded-md px-3 py-2 text-sm font-medium text-slate-600 hover:bg-slate-100 hover:text-slate-900"
               >
@@ -51,12 +57,20 @@ export function AppHeader() {
               </button>
             </>
           ) : mounted && !isLoading ? (
-            <button
-              onClick={() => loginWithRedirect()}
-              className="rounded-md bg-slate-900 px-4 py-2 text-sm font-medium text-white hover:bg-slate-800"
-            >
-              Login
-            </button>
+            <>
+              <Link
+                href="/legal"
+                className="rounded-md px-3 py-2 text-sm font-medium text-slate-600 hover:bg-slate-100 hover:text-slate-900"
+              >
+                Legal Research
+              </Link>
+              <button
+                onClick={() => loginWithRedirect()}
+                className="rounded-md bg-slate-900 px-4 py-2 text-sm font-medium text-white hover:bg-slate-800"
+              >
+                Login
+              </button>
+            </>
           ) : null}
         </nav>
       </div>
