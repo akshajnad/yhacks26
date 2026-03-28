@@ -148,8 +148,8 @@ function getFallbackDemoAnalysis(): ReturnType<typeof normalizeResponse> {
         description: "Gives patients the right to dispute billing errors in writing within 60 days and requires the provider to investigate before collecting.",
       },
       {
-        title: "CMS Hospital Price Transparency Rule, 45 CFR §180",
-        description: "Requires hospitals to publish standard charges, enabling patients to verify whether billed amounts align with posted rates.",
+        title: "Connecticut Unfair Trade Practices Act, CGS §42-110b",
+        description: "Prohibits unfair or deceptive billing practices by healthcare providers in Connecticut, allowing patients to file complaints with the state Attorney General.",
       },
     ],
   }
@@ -216,7 +216,7 @@ IMPORTANT:
 - Monetary values must be numbers without dollar signs or commas
 - Be thorough: detect ALL issues you can find, not just the most obvious one
 - Provide specific, actionable recommendations
-- laws MUST contain exactly 3 items relevant to the detected billing issues. Each has a "title" (statute name/citation) and "description" (one sentence). If documents mention a specific US state, include state-specific laws; otherwise default to federal laws.`
+- laws MUST contain exactly 3 items relevant to the detected billing issues. Each has a "title" (statute name/citation) and "description" (one sentence). If documents mention a specific US state, include state-specific laws; otherwise default to New Haven, Connecticut laws (include both Connecticut state statutes and applicable federal laws).`
 
 const MULTI_DOC_SYSTEM_PROMPT = `You are an expert medical billing advocate with deep knowledge of:
 - CPT/ICD coding standards and common upcoding patterns
