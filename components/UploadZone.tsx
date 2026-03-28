@@ -1,6 +1,7 @@
 "use client"
 
-import { useCallback, useRef, useState } from "react"
+import { useAuth0 } from "@auth0/auth0-react"
+import { useCallback, useEffect, useRef, useState } from "react"
 import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
 import type { AnalysisResult } from "@/types/analysis"
@@ -14,10 +15,21 @@ const ACCEPTED_TYPES = ["application/pdf", "image/jpeg", "image/jpg", "image/png
 const ACCEPTED_DISPLAY = "PDF, JPG, PNG, WebP"
 
 export function UploadZone({ onResult, onError }: UploadZoneProps) {
+  const { isAuthenticated, isLoading: authLoading, loginWithRedirect } = useAuth0()
+  const canUpload = isAuthenticated && !authLoading
+
   const [file, setFile] = useState<File | null>(null)
   const [isDragging, setIsDragging] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
   const inputRef = useRef<HTMLInputElement>(null)
+
+  useEffect(() => {
+    if (!canUpload) {
+      setFile(null)
+      setIsDragging(false)
+      if (inputRef.current) inputRef.current.value = ""
+    }
+  }, [canUpload])
 
   const handleFile = useCallback((f: File) => {
     if (!ACCEPTED_TYPES.includes(f.type)) {
@@ -31,27 +43,32 @@ export function UploadZone({ onResult, onError }: UploadZoneProps) {
     setFile(f)
   }, [onError])
 
-  const handleDrop = useCallback((e: React.DragEvent) => {
-    e.preventDefault()
-    setIsDragging(false)
-    const dropped = e.dataTransfer.files[0]
-    if (dropped) handleFile(dropped)
-  }, [handleFile])
+  const handleDrop = useCallback(
+    (e: React.DragEvent) => {
+      e.preventDefault()
+      setIsDragging(false)
+      if (!canUpload) return
+      const dropped = e.dataTransfer.files[0]
+      if (dropped) handleFile(dropped)
+    },
+    [canUpload, handleFile]
+  )
 
   const handleDragOver = (e: React.DragEvent) => {
     e.preventDefault()
-    setIsDragging(true)
+    if (canUpload) setIsDragging(true)
   }
 
   const handleDragLeave = () => setIsDragging(false)
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (!canUpload) return
     const selected = e.target.files?.[0]
     if (selected) handleFile(selected)
   }
 
   const handleAnalyze = async () => {
-    if (!file) return
+    if (!canUpload || !file) return
     setIsLoading(true)
     onError("")
 
@@ -82,17 +99,31 @@ export function UploadZone({ onResult, onError }: UploadZoneProps) {
     <div className="space-y-4">
       {/* Drop zone */}
       <div
-        onClick={() => inputRef.current?.click()}
+        role={canUpload ? "button" : undefined}
+        tabIndex={canUpload ? 0 : undefined}
+        onClick={() => canUpload && inputRef.current?.click()}
+        onKeyDown={(e) => {
+          if (!canUpload) return
+          if (e.key === "Enter" || e.key === " ") {
+            e.preventDefault()
+            inputRef.current?.click()
+          }
+        }}
         onDrop={handleDrop}
         onDragOver={handleDragOver}
         onDragLeave={handleDragLeave}
         className={cn(
-          "relative flex flex-col items-center justify-center gap-3 rounded-xl border-2 border-dashed p-12 cursor-pointer transition-all duration-200",
-          isDragging
+          "relative flex flex-col items-center justify-center gap-3 rounded-xl border-2 border-dashed p-12 transition-all duration-200",
+          canUpload
+            ? "cursor-pointer"
+            : "cursor-not-allowed opacity-80",
+          isDragging && canUpload
             ? "border-blue-500 bg-blue-50"
-            : file
+            : file && canUpload
             ? "border-green-400 bg-green-50"
-            : "border-[var(--border)] bg-[var(--muted)] hover:border-blue-400 hover:bg-blue-50/50"
+            : canUpload
+            ? "border-[var(--border)] bg-[var(--muted)] hover:border-blue-400 hover:bg-blue-50/50"
+            : "border-[var(--border)] bg-[var(--muted)]"
         )}
       >
         <input
@@ -100,14 +131,35 @@ export function UploadZone({ onResult, onError }: UploadZoneProps) {
           type="file"
           accept=".pdf,image/jpeg,image/jpg,image/png,image/webp"
           className="hidden"
+          disabled={!canUpload}
           onChange={handleInputChange}
         />
 
-        <div className="flex h-14 w-14 items-center justify-center rounded-full bg-blue-100">
-          <UploadIcon />
+        <div
+          className={cn(
+            "flex h-14 w-14 items-center justify-center rounded-full",
+            canUpload ? "bg-blue-100" : "bg-[var(--muted)]"
+          )}
+        >
+          <UploadIcon muted={!canUpload} />
         </div>
 
-        {file ? (
+        {authLoading ? (
+          <div className="text-center">
+            <p className="font-medium text-[var(--foreground)]">Checking sign-in…</p>
+            <p className="text-sm text-[var(--muted-foreground)]">Upload unlocks once you&apos;re signed in.</p>
+          </div>
+        ) : !isAuthenticated ? (
+          <div className="text-center">
+            <p className="font-medium text-[var(--foreground)]">Sign in to upload</p>
+            <p className="mx-auto mb-4 max-w-sm text-sm text-[var(--muted-foreground)]">
+              Medical bill analysis is available after you log in. Use the buttons in the header or below.
+            </p>
+            <Button type="button" onClick={() => loginWithRedirect()} size="default">
+              Log in to upload
+            </Button>
+          </div>
+        ) : file ? (
           <div className="text-center">
             <p className="font-medium text-green-700">{file.name}</p>
             <p className="text-sm text-[var(--muted-foreground)]">
@@ -129,7 +181,7 @@ export function UploadZone({ onResult, onError }: UploadZoneProps) {
       {/* Analyze button */}
       <Button
         onClick={handleAnalyze}
-        disabled={!file || isLoading}
+        disabled={!canUpload || !file || isLoading}
         className="w-full"
         size="lg"
       >
@@ -143,7 +195,7 @@ export function UploadZone({ onResult, onError }: UploadZoneProps) {
         )}
       </Button>
 
-      {file && !isLoading && (
+      {canUpload && file && !isLoading && (
         <button
           onClick={() => {
             setFile(null)
@@ -158,9 +210,14 @@ export function UploadZone({ onResult, onError }: UploadZoneProps) {
   )
 }
 
-function UploadIcon() {
+function UploadIcon({ muted }: { muted?: boolean }) {
   return (
-    <svg className="h-7 w-7 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+    <svg
+      className={cn("h-7 w-7", muted ? "text-[var(--muted-foreground)]" : "text-blue-600")}
+      fill="none"
+      viewBox="0 0 24 24"
+      stroke="currentColor"
+    >
       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
     </svg>
   )
