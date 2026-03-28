@@ -1,6 +1,10 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
+import {
+  buildNextStepsRecommendations,
+  buildOutboundCallScriptFromReport,
+} from "@/lib/agents/legalCallScript";
 
 // ── US States list ────────────────────────────────────────────────────────────
 const US_STATES = [
@@ -174,9 +178,36 @@ export default function LegalResearchPage() {
   const [streaming, setStreaming] = useState(false);
   const [result, setResult] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [submittedCtx, setSubmittedCtx] = useState<{ city: string; state: string } | null>(null);
+  const [submittedCtx, setSubmittedCtx] = useState<{
+    city: string;
+    state: string;
+    issue: string;
+  } | null>(null);
+
+  const [phoneNumber, setPhoneNumber] = useState("");
+  const [callLoading, setCallLoading] = useState(false);
+  const [callError, setCallError] = useState<string | null>(null);
+  const [callSuccess, setCallSuccess] = useState<string | null>(null);
 
   const detectedFlags = detectFlags(issue);
+
+  const callPreview = useMemo(() => {
+    if (!result || !submittedCtx) return null;
+    return buildOutboundCallScriptFromReport(result, {
+      city: submittedCtx.city,
+      state: submittedCtx.state,
+      issue: submittedCtx.issue || "Medical billing dispute",
+    });
+  }, [result, submittedCtx]);
+
+  const nextStepsPreview = useMemo(() => {
+    if (!result || !submittedCtx) return null;
+    return buildNextStepsRecommendations(result, {
+      city: submittedCtx.city,
+      state: submittedCtx.state,
+      issue: submittedCtx.issue || "Medical billing dispute",
+    });
+  }, [result, submittedCtx]);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -186,7 +217,7 @@ export default function LegalResearchPage() {
     setStreaming(false);
     setResult(null);
     setError(null);
-    setSubmittedCtx({ city: city.trim(), state });
+    setSubmittedCtx({ city: city.trim(), state, issue: issue.trim() });
 
     try {
       const res = await fetch("/api/legal", {
@@ -246,6 +277,42 @@ export default function LegalResearchPage() {
       setError(msg);
       setLoading(false);
       setStreaming(false);
+    }
+  }
+
+  async function handleOutboundCall(e: React.FormEvent) {
+    e.preventDefault();
+    if (!result?.trim() || !submittedCtx) return;
+
+    setCallLoading(true);
+    setCallError(null);
+    setCallSuccess(null);
+
+    try {
+      const res = await fetch("/api/legal/outbound-call", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          toNumber: phoneNumber.trim(),
+          legalReport: result,
+          city: submittedCtx.city,
+          state: submittedCtx.state,
+          issue: submittedCtx.issue,
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        setCallError(typeof data.error === "string" ? data.error : "Call request failed.");
+        return;
+      }
+      setCallSuccess(
+        data.message ??
+          "Call initiated. Answer your phone when the agent dials out (requires ElevenLabs + Twilio setup).",
+      );
+    } catch (err) {
+      setCallError(err instanceof Error ? err.message : "Network error");
+    } finally {
+      setCallLoading(false);
     }
   }
 
@@ -675,6 +742,103 @@ export default function LegalResearchPage() {
           gap: 0.5rem;
           align-items: flex-start;
         }
+
+        .legal-call-section {
+          margin-top: 1.75rem;
+          padding-top: 1.5rem;
+          border-top: 1px solid rgba(255,255,255,0.08);
+        }
+
+        .legal-call-title {
+          color: #e2e8f0;
+          font-size: 0.95rem;
+          font-weight: 700;
+          margin-bottom: 0.35rem;
+          display: flex;
+          align-items: center;
+          gap: 0.5rem;
+        }
+
+        .legal-call-sub {
+          color: #64748b;
+          font-size: 0.78rem;
+          margin-bottom: 1rem;
+          line-height: 1.5;
+        }
+
+        .legal-call-preview {
+          background: rgba(0,0,0,0.2);
+          border: 1px solid rgba(255,255,255,0.06);
+          border-radius: 0.625rem;
+          padding: 0.85rem 1rem;
+          color: #94a3b8;
+          font-size: 0.8rem;
+          line-height: 1.55;
+          margin-bottom: 1rem;
+          max-height: 140px;
+          overflow-y: auto;
+        }
+
+        .legal-call-row {
+          display: flex;
+          flex-wrap: wrap;
+          gap: 0.75rem;
+          align-items: flex-end;
+        }
+
+        .legal-call-row .legal-field {
+          flex: 1;
+          min-width: 200px;
+        }
+
+        .legal-call-btn {
+          padding: 0.65rem 1.15rem;
+          background: linear-gradient(135deg, #059669, #047857);
+          border: none;
+          border-radius: 0.625rem;
+          color: #fff;
+          font-size: 0.88rem;
+          font-weight: 700;
+          cursor: pointer;
+          white-space: nowrap;
+          transition: opacity 0.2s;
+        }
+
+        .legal-call-btn:hover:not(:disabled) {
+          opacity: 0.92;
+        }
+
+        .legal-call-btn:disabled {
+          opacity: 0.5;
+          cursor: not-allowed;
+        }
+
+        .legal-call-ok {
+          margin-top: 0.85rem;
+          padding: 0.65rem 0.85rem;
+          background: rgba(16,185,129,0.12);
+          border: 1px solid rgba(16,185,129,0.25);
+          border-radius: 0.5rem;
+          color: #6ee7b7;
+          font-size: 0.78rem;
+        }
+
+        .legal-call-err {
+          margin-top: 0.85rem;
+          padding: 0.65rem 0.85rem;
+          background: rgba(220,38,38,0.12);
+          border: 1px solid rgba(220,38,38,0.25);
+          border-radius: 0.5rem;
+          color: #fca5a5;
+          font-size: 0.78rem;
+        }
+
+        .legal-phone-hint {
+          margin: 0.35rem 0 0;
+          font-size: 0.72rem;
+          line-height: 1.45;
+          color: #64748b;
+        }
       `}</style>
 
       <div className="legal-page">
@@ -734,6 +898,26 @@ export default function LegalResearchPage() {
                   onChange={(e) => setIssue(e.target.value)}
                   required
                 />
+              </div>
+
+              <div className="legal-field" style={{ marginTop: "0.25rem" }}>
+                <label className="legal-label" htmlFor="legal-phone">
+                  Phone number for outbound call
+                </label>
+                <input
+                  id="legal-phone"
+                  className="legal-input"
+                  type="tel"
+                  inputMode="tel"
+                  autoComplete="tel"
+                  placeholder="+1 555 123 4567"
+                  value={phoneNumber}
+                  onChange={(e) => setPhoneNumber(e.target.value)}
+                  aria-describedby="legal-phone-hint"
+                />
+                <p id="legal-phone-hint" className="legal-phone-hint">
+                  After the legal report finishes, use “Call this number” below to dial this line via your ElevenLabs agent.
+                </p>
               </div>
 
               {/* Auto-detected flags */}
@@ -816,12 +1000,82 @@ export default function LegalResearchPage() {
               </div>
 
               {!streaming && (
-                <div className="legal-disclaimer">
-                  <span>⚠️</span>
-                  <span>
-                    This report is AI-generated for informational purposes only and does not constitute legal advice. Consult a licensed attorney before taking legal action.
-                  </span>
-                </div>
+                <>
+                  <div className="legal-disclaimer">
+                    <span>⚠️</span>
+                    <span>
+                      This report is AI-generated for informational purposes only and does not constitute legal advice. Consult a licensed attorney before taking legal action.
+                    </span>
+                  </div>
+
+                  <div className="legal-call-section">
+                    <div className="legal-call-title">
+                      <span aria-hidden>📞</span>
+                      Outbound call (demo)
+                    </div>
+                    <p className="legal-call-sub">
+                      Starts an ElevenLabs Conversational AI call to the number you entered above via{" "}
+                      <code className="legal-code">POST /v1/convai/twilio/outbound-call</code>{" "}
+                      (direct server-side API — Lava does not support forwarding this endpoint). Set{" "}
+                      <code className="legal-code">ELEVENLABS_API_KEY</code>,{" "}
+                      <code className="legal-code">ELEVENLABS_AGENT_ID</code>, and{" "}
+                      <code className="legal-code">ELEVENLABS_AGENT_PHONE_NUMBER_ID</code> in{" "}
+                      <code className="legal-code">.env.local</code>. Opening context is sent as{" "}
+                      <code className="legal-code">first_message</code> override.
+                    </p>
+
+                    {callPreview && (
+                      <div>
+                        <div className="legal-label" style={{ marginBottom: "0.35rem" }}>
+                          Call opener (included in agent first message)
+                        </div>
+                        <div className="legal-call-preview">{callPreview.script}</div>
+                      </div>
+                    )}
+
+                    {nextStepsPreview && (
+                      <div style={{ marginTop: "1rem" }}>
+                        <div className="legal-label" style={{ marginBottom: "0.35rem" }}>
+                          Next steps (sent to the agent as first message + dynamic variables)
+                        </div>
+                        <div className="legal-call-preview" style={{ whiteSpace: "pre-wrap" }}>
+                          {nextStepsPreview}
+                        </div>
+                      </div>
+                    )}
+
+                    <form onSubmit={handleOutboundCall}>
+                      {phoneNumber.trim() ? (
+                        <p className="legal-call-sub" style={{ marginBottom: "0.75rem" }}>
+                          Using number: <strong style={{ color: "#e2e8f0" }}>{phoneNumber.trim()}</strong> (from the form above)
+                        </p>
+                      ) : (
+                        <p className="legal-call-sub" style={{ marginBottom: "0.75rem", color: "#fbbf24" }}>
+                          Enter a phone number in the form above, then return here to place the call.
+                        </p>
+                      )}
+                      <button
+                        type="submit"
+                        className="legal-call-btn"
+                        style={{ width: "100%" }}
+                        disabled={callLoading || !phoneNumber.trim()}
+                      >
+                        {callLoading ? "Requesting call…" : "Call this number"}
+                      </button>
+                    </form>
+
+                    {callSuccess && <div className="legal-call-ok">{callSuccess}</div>}
+                    {callError && <div className="legal-call-err">{callError}</div>}
+
+                    <div className="legal-disclaimer" style={{ marginTop: "1rem" }}>
+                      <span>⚠️</span>
+                      <span>
+                        Only call numbers you own or have consent to reach. Automated calls may be regulated (e.g. TCPA).
+                        This is a demo — no warranty of connectivity.
+                      </span>
+                    </div>
+                  </div>
+                </>
               )}
             </div>
           )}
