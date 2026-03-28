@@ -19,8 +19,10 @@ import type { AnalysisResult, ExtractedFields, DetectedIssue, RecommendedAction 
 export interface AnalyzeInput {
   /** Extracted text (for text-based PDFs) */
   text?: string | null
-  /** Base64-encoded file content (for images or scanned PDFs) */
+  /** Base64-encoded file content (for single images) */
   imageBase64?: string | null
+  /** Base64-encoded PNG images of rendered PDF pages (for scanned PDFs) */
+  images?: string[]
   /** MIME type of the original file */
   mimeType: string
 }
@@ -116,6 +118,17 @@ export async function analyzeDocument(input: AnalyzeInput): Promise<AnalysisResu
 
   if (input.text) {
     parts.push({ text: `\n\nDOCUMENT TEXT:\n${input.text}` })
+  } else if (input.images && input.images.length > 0) {
+    // Rendered PDF pages — send each as a PNG image
+    for (const pageBase64 of input.images) {
+      parts.push({
+        inlineData: {
+          mimeType: "image/png",
+          data: pageBase64,
+        },
+      })
+    }
+    parts.push({ text: "\n\nAnalyze the medical document shown in the images above." })
   } else if (input.imageBase64) {
     parts.push({
       inlineData: {
@@ -125,7 +138,7 @@ export async function analyzeDocument(input: AnalyzeInput): Promise<AnalysisResu
     })
     parts.push({ text: "\n\nAnalyze the medical document shown in the image above." })
   } else {
-    throw new Error("Either text or imageBase64 must be provided")
+    throw new Error("Either text, images, or imageBase64 must be provided")
   }
 
   // Future RAG hook: inject top-k similar past cases here before the generate call
