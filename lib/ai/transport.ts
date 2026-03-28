@@ -34,15 +34,15 @@ export async function analyze(
   messages: ChatMessage[],
   temperature = 0.1
 ): Promise<string> {
-  const forwardToken = process.env.LAVA_FORWARD_TOKEN
-  if (!forwardToken) {
-    throw new Error("LAVA_FORWARD_TOKEN is not set in environment")
+  const secretKey = process.env.LAVA_SECRET_KEY
+  if (!secretKey) {
+    throw new Error("LAVA_SECRET_KEY is not set in environment")
   }
 
   const lava = new Lava() // Still needed to access lava.providers easily
   const OPENAI_CHAT_URL = lava.providers.openai + "/chat/completions"
 
-  console.log("[transport] Calling OpenAI via Lava forward token")
+  console.log("[transport] Calling OpenAI via Lava secret key")
   console.log("[transport] Endpoint:", OPENAI_CHAT_URL)
   console.log("[transport] Model:", MODEL)
   console.log("[transport] Messages count:", messages.length)
@@ -54,7 +54,7 @@ export async function analyze(
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        Authorization: `Bearer ${forwardToken}`,
+        Authorization: `Bearer ${secretKey}`,
       },
       body: JSON.stringify({
         model: MODEL,

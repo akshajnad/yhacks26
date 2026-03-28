@@ -171,7 +171,7 @@ export function UploadZone({ onResult, onError }: UploadZoneProps) {
         {isLoading ? (
           <span className="flex items-center gap-2">
             <SpinnerIcon />
-            Analyzing with Gemini...
+            Analyzing...
           </span>
         ) : (
           "Analyze Bill"

@@ -1,7 +1,13 @@
 import { Lava } from "@lavapayments/nodejs";
 const lava = new Lava(process.env.LAVA_SECRET_KEY);
 
-async function researchMedicalBillingLaw(state, city, issue, lineItems = []) {
+interface LineItem {
+  code: string
+  description: string
+  amount: number
+}
+
+async function researchMedicalBillingLaw(state: string, city: string, issue: string, lineItems: LineItem[] = []) {
   const issueLC = issue.toLowerCase();
 
   // ── Auto-detect issue context ──────────────────────────────────────────────
