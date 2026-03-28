@@ -3,19 +3,16 @@
  *
  * Body: { city: string; state: string; issue: string; lineItems?: LineItem[] }
  *
- * Streams Perplexity sonar-deep-research tokens directly to the client so the
- * connection stays alive during the full 30–90 s research window.
+ * Calls GPT-4o-Search-Preview (web-search focused, low yapping) directly.
+ * Streams the response and strips any <think> blocks or meta-preamble.
  *
- * The response is a text/event-stream (SSE).  Each line is:
- *   data: <token text>\n\n
- * Terminated with:
- *   data: [DONE]\n\n
+ * SSE format:   data: <token>\n\n
+ * Terminated:   data: [DONE]\n\n
  */
 
 import { NextRequest } from "next/server";
 import { buildLegalPrompts } from "@/lib/agents/legal";
 
-// Allow up to 5 minutes for deep research
 export const maxDuration = 300;
 
 export async function POST(req: NextRequest) {
@@ -48,11 +45,11 @@ export async function POST(req: NextRequest) {
         lineItems: lineItems as { code: string; description: string; amount: string }[],
     });
 
-    // ── Open a streaming call to Perplexity ──────────────────────────────────
+    // ── Call Web-Search-Preview ──────────────────────────────────────────────
     let upstream: Response;
     try {
         upstream = await fetch(
-            "https://api.lava.so/v1/forward?u=https%3A%2F%2Fapi.perplexity.ai%2Fchat%2Fcompletions",
+            "https://api.lava.so/v1/forward?u=https%3A%2F%2Fapi.openai.com%2Fv1%2Fchat%2Fcompletions",
             {
                 method: "POST",
                 headers: {
@@ -60,25 +57,17 @@ export async function POST(req: NextRequest) {
                     Authorization: `Bearer ${process.env.LAVA_FORWARD_TOKEN}`,
                 },
                 body: JSON.stringify({
-                    model: "sonar-deep-research",
+                    model: "gpt-4o-search-preview",
                     stream: true,
                     messages: [
                         { role: "system", content: systemPrompt },
                         { role: "user", content: userMessage },
                     ],
-                    search_domain_filter: [
-                        "law.cornell.edu",
-                        "cms.gov",
-                        "dol.gov",
-                        "hhs.gov",
-                        `${state.trim().toLowerCase().replace(/\s+/g, "")}.gov`,
-                    ],
-                    return_citations: true,
                 }),
             }
         );
     } catch (err) {
-        const msg = err instanceof Error ? err.message : "Network error reaching API";
+        const msg = err instanceof Error ? err.message : "Network error reaching OpenAI";
         return new Response(JSON.stringify({ error: msg }), {
             status: 502,
             headers: { "Content-Type": "application/json" },
@@ -88,69 +77,137 @@ export async function POST(req: NextRequest) {
     if (!upstream.ok || !upstream.body) {
         const text = await upstream.text().catch(() => "");
         return new Response(
-            JSON.stringify({ error: `Upstream API error (${upstream.status}): ${text}` }),
+            JSON.stringify({ error: `OpenAI API error (${upstream.status}): ${text}` }),
             { status: 502, headers: { "Content-Type": "application/json" } }
         );
     }
 
-    // ── Pipe SSE tokens from Perplexity → browser ────────────────────────────
+    // ── Stream tokens → browser, stripping yapping ──────────────────────────
     const encoder = new TextEncoder();
     const decoder = new TextDecoder();
 
     const stream = new ReadableStream({
         async start(controller) {
+            const send = (text: string) => {
+                const escaped = text.replace(/\n/g, "\\n");
+                controller.enqueue(encoder.encode(`data: ${escaped}\n\n`));
+            };
+
             const reader = upstream.body!.getReader();
-            let buffer = "";
+            let sseBuffer = "";
+
+            let thinkBuffer = "";
+            let inThink = false;
+
+            const OPEN_TAGS = ["<think>", "<thinking>"];
+            const CLOSE_TAGS = ["</think>", "</thinking>"];
+
+            let outputSoFar = "";
+            let preambleStripped = false;
+
+            function processToken(token: string): void {
+                if (inThink) {
+                    thinkBuffer += token;
+                    for (const ct of CLOSE_TAGS) {
+                        const idx = thinkBuffer.indexOf(ct);
+                        if (idx !== -1) {
+                            inThink = false;
+                            const after = thinkBuffer.slice(idx + ct.length);
+                            thinkBuffer = "";
+                            if (after) processToken(after);
+                            return;
+                        }
+                    }
+                    return;
+                }
+
+                for (const ot of OPEN_TAGS) {
+                    const idx = token.indexOf(ot);
+                    if (idx !== -1) {
+                        const before = token.slice(0, idx);
+                        if (before) send(before);
+                        inThink = true;
+                        thinkBuffer = "";
+                        const remainder = token.slice(idx + ot.length);
+                        if (remainder) processToken(remainder);
+                        return;
+                    }
+                }
+
+                if (!preambleStripped) {
+                    outputSoFar += token;
+                    if (outputSoFar.length > 5) {
+                        // Strip reasoning parentheticals
+                        const parenMatch = outputSoFar.match(/^\s*\([^]*?\)\s*/);
+                        if (parenMatch) {
+                            outputSoFar = outputSoFar.slice(parenMatch[0].length);
+                            return;
+                        }
+
+                        // Strip yapping lines
+                        const lineMatch = outputSoFar.match(/^\s*(Thinking|Goal|Context|User is saying|The user wants|Task):[^\n]*\n/i);
+                        if (lineMatch) {
+                            outputSoFar = outputSoFar.slice(lineMatch[0].length);
+                            return;
+                        }
+
+                        // Detect start of list
+                        if (/^\s*[1]\./.test(outputSoFar)) {
+                            preambleStripped = true;
+                            send(outputSoFar);
+                            outputSoFar = "";
+                            return;
+                        }
+
+                        if (outputSoFar.length > 500) {
+                            preambleStripped = true;
+                            send(outputSoFar);
+                            outputSoFar = "";
+                        }
+                    }
+                    return;
+                }
+
+                send(token);
+            }
 
             while (true) {
                 const { done, value } = await reader.read();
                 if (done) break;
 
-                buffer += decoder.decode(value, { stream: true });
-                const lines = buffer.split("\n");
-                buffer = lines.pop() ?? ""; // keep incomplete line in buffer
+                sseBuffer += decoder.decode(value, { stream: true });
+                const lines = sseBuffer.split("\n");
+                sseBuffer = lines.pop() ?? "";
 
                 for (const line of lines) {
                     const trimmed = line.trim();
                     if (!trimmed || !trimmed.startsWith("data:")) continue;
-
                     const jsonStr = trimmed.slice(5).trim();
-                    if (jsonStr === "[DONE]") {
-                        controller.enqueue(encoder.encode("data: [DONE]\n\n"));
-                        continue;
-                    }
+                    if (jsonStr === "[DONE]") continue;
 
                     try {
                         const parsed = JSON.parse(jsonStr);
-                        const delta = parsed.choices?.[0]?.delta?.content;
-                        if (delta) {
-                            // Escape newlines inside the SSE data field
-                            const escaped = delta.replace(/\n/g, "\\n");
-                            controller.enqueue(encoder.encode(`data: ${escaped}\n\n`));
-                        }
-                    } catch {
-                        // skip malformed chunks
-                    }
+                        const delta: string | undefined = parsed.choices?.[0]?.delta?.content;
+                        if (delta) processToken(delta);
+                    } catch { }
                 }
             }
 
-            // Flush remaining buffer
-            if (buffer.trim()) {
-                const trimmed = buffer.trim();
+            if (sseBuffer.trim()) {
+                const trimmed = sseBuffer.trim();
                 if (trimmed.startsWith("data:")) {
                     const jsonStr = trimmed.slice(5).trim();
                     if (jsonStr !== "[DONE]") {
                         try {
                             const parsed = JSON.parse(jsonStr);
-                            const delta = parsed.choices?.[0]?.delta?.content;
-                            if (delta) {
-                                controller.enqueue(encoder.encode(`data: ${delta.replace(/\n/g, "\\n")}\n\n`));
-                            }
-                        } catch { /* ignore */ }
+                            const delta: string | undefined = parsed.choices?.[0]?.delta?.content;
+                            if (delta) processToken(delta);
+                        } catch { }
                     }
                 }
             }
 
+            if (outputSoFar) send(outputSoFar);
             controller.enqueue(encoder.encode("data: [DONE]\n\n"));
             controller.close();
         },
