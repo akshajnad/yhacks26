@@ -2,8 +2,9 @@
  * Document text extraction and PDF-to-image rendering utilities.
  *
  * Strategy:
- * - PDFs: use pdf-parse for text extraction. If the result is too short
- *   (likely a scanned/image PDF), render pages to PNG images via pdf-to-img.
+ * - PDFs: use pdf-parse v2 (PDFParse class) for text extraction.
+ *   If the result is too short (likely a scanned/image PDF),
+ *   render pages to PNG images via pdf-to-img.
  * - Images: always pass through for vision processing directly.
  */
 
@@ -19,6 +20,30 @@ export interface ExtractionResult {
 }
 
 /**
+ * Extract text from a PDF buffer using pdf-parse v2 (PDFParse class).
+ *
+ * pdf-parse v2 changed its API:
+ * - Export is { PDFParse } class, not a default function
+ * - Requires Uint8Array input, not Buffer
+ * - Must call load() before getText()
+ * - getText() returns { text, pages, total }
+ */
+async function extractTextWithPdfParse(buffer: Buffer): Promise<string> {
+  // eslint-disable-next-line @typescript-eslint/no-require-imports
+  const { PDFParse } = require("pdf-parse")
+
+  const uint8 = new Uint8Array(buffer)
+  const parser = new PDFParse(uint8)
+  await parser.load()
+
+  const result = await parser.getText()
+  const text = (result?.text ?? "").trim()
+
+  console.log("[extract] pdf-parse v2: getText returned", text.length, "chars,", result?.total ?? 0, "page(s)")
+  return text
+}
+
+/**
  * Render PDF pages to PNG images using pdf-to-img.
  * Returns an array of base64-encoded PNG strings.
  */
@@ -27,11 +52,15 @@ async function renderPDFToImages(buffer: Buffer): Promise<string[]> {
   const { pdf } = await import("pdf-to-img")
 
   const dataUrl = `data:application/pdf;base64,${buffer.toString("base64")}`
+  console.log("[extract] Calling pdf-to-img with dataUrl length:", dataUrl.length)
+
   const document = await pdf(dataUrl, { scale: 2.0 })
 
   const pages: string[] = []
   for await (const image of document) {
-    pages.push(Buffer.from(image).toString("base64"))
+    const b64 = Buffer.from(image).toString("base64")
+    pages.push(b64)
+    console.log("[extract] Rendered page", pages.length, "- base64 length:", b64.length)
   }
 
   console.log("[extract] Rendered PDF to", pages.length, "PNG page(s)")
@@ -43,51 +72,56 @@ async function renderPDFToImages(buffer: Buffer): Promise<string[]> {
  * Falls back to image rendering if text is too sparse (scanned PDF).
  */
 export async function extractFromPDF(buffer: Buffer): Promise<ExtractionResult> {
-  try {
-    // Dynamic import avoids issues with pdf-parse's require() in Next.js edge
-    // eslint-disable-next-line @typescript-eslint/no-require-imports
-    const pdfParse: (buffer: Buffer) => Promise<{ text: string }> = require("pdf-parse")
-    const result = await pdfParse(buffer)
-    const text = result.text?.trim() ?? ""
+  console.log("[extract] extractFromPDF called, buffer length:", buffer.length, "first bytes:", buffer.slice(0, 5).toString())
 
+  // --- Step 1: Try text extraction ---
+  let text = ""
+  let textExtractionFailed = false
+
+  try {
+    text = await extractTextWithPdfParse(buffer)
     console.log("[extract] PDF text extraction length:", text.length)
 
     if (text.length >= MIN_TEXT_LENGTH) {
       return { text, useVision: false }
     }
 
-    // Too little text — likely a scanned PDF, render pages to images
-    console.log("[extract] Text too short, rendering PDF pages to images")
-    try {
-      const images = await renderPDFToImages(buffer)
-      if (images.length > 0) {
-        return { text: null, useVision: true, images }
-      }
-    } catch (renderErr) {
-      console.error("[extract] PDF image rendering failed:", renderErr instanceof Error ? renderErr.message : String(renderErr))
+    console.log("[extract] Text too short (<", MIN_TEXT_LENGTH, "chars), will try image rendering")
+  } catch (parseErr) {
+    textExtractionFailed = true
+    console.error("[extract] pdf-parse failed:", parseErr instanceof Error ? parseErr.message : String(parseErr))
+    if (parseErr instanceof Error && parseErr.stack) {
+      console.error("[extract] pdf-parse stack:", parseErr.stack.split("\n").slice(0, 3).join("\n"))
     }
-
-    // If rendering also failed but we have some text, use it
-    if (text.length > 0) {
-      console.log("[extract] Falling back to sparse text extraction")
-      return { text, useVision: false }
-    }
-
-    return { text: null, useVision: true }
-  } catch {
-    // Parse failure — try image rendering
-    console.log("[extract] pdf-parse failed, attempting image rendering")
-    try {
-      const images = await renderPDFToImages(buffer)
-      if (images.length > 0) {
-        return { text: null, useVision: true, images }
-      }
-    } catch (renderErr) {
-      console.error("[extract] PDF image rendering also failed:", renderErr instanceof Error ? renderErr.message : String(renderErr))
-    }
-
-    return { text: null, useVision: true }
   }
+
+  // --- Step 2: Try rendering PDF pages to images ---
+  try {
+    const images = await renderPDFToImages(buffer)
+    if (images.length > 0) {
+      return { text: null, useVision: true, images }
+    }
+    console.error("[extract] pdf-to-img returned 0 pages")
+  } catch (renderErr) {
+    console.error("[extract] PDF image rendering failed:", renderErr instanceof Error ? renderErr.message : String(renderErr))
+    if (renderErr instanceof Error && renderErr.stack) {
+      console.error("[extract] pdf-to-img stack:", renderErr.stack.split("\n").slice(0, 3).join("\n"))
+    }
+  }
+
+  // --- Step 3: Fallback to sparse text if available ---
+  if (text.length > 0) {
+    console.log("[extract] Falling back to sparse text extraction (", text.length, "chars)")
+    return { text, useVision: false }
+  }
+
+  // --- Step 4: Nothing worked ---
+  const reasons = []
+  if (textExtractionFailed) reasons.push("text extraction threw an error")
+  else reasons.push(`text extraction returned only ${text.length} chars`)
+  reasons.push("image rendering failed or produced 0 pages")
+
+  throw new Error(`PDF processing failed: ${reasons.join("; ")}. The PDF may be corrupted, password-protected, or empty.`)
 }
 
 /**
@@ -105,10 +139,8 @@ export function extractFromImage(): ExtractionResult {
 export async function extractTextFromBase64PDF(base64: string): Promise<string | null> {
   try {
     const buffer = Buffer.from(base64, "base64")
-    // eslint-disable-next-line @typescript-eslint/no-require-imports
-    const pdfParse: (buffer: Buffer) => Promise<{ text: string }> = require("pdf-parse")
-    const result = await pdfParse(buffer)
-    return result.text?.trim() || null
+    const text = await extractTextWithPdfParse(buffer)
+    return text || null
   } catch {
     return null
   }

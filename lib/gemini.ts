@@ -55,11 +55,16 @@ function partsToOpenAIMessages(parts: Part[]): ChatMessage[] {
         userContent.push({ type: "text", text: part.text })
       }
     } else if (part.inlineData) {
+      const mime = part.inlineData.mimeType
+      if (!mime.startsWith("image/")) {
+        console.error(`[ai-gateway] BLOCKED non-image inlineData with MIME type: ${mime} — this would cause an OpenAI 400 error`)
+        throw new Error(`Cannot send non-image MIME type "${mime}" as image_url to OpenAI. PDFs must be converted to images first.`)
+      }
+      const dataUri = `data:${mime};base64,${part.inlineData.data}`
+      console.log(`[ai-gateway] image_url prefix: ${dataUri.slice(0, 50)}...`)
       userContent.push({
         type: "image_url",
-        image_url: {
-          url: `data:${part.inlineData.mimeType};base64,${part.inlineData.data}`,
-        },
+        image_url: { url: dataUri },
       })
     }
   }
@@ -67,6 +72,15 @@ function partsToOpenAIMessages(parts: Part[]): ChatMessage[] {
   if (userContent.length > 0) {
     messages.push({ role: "user", content: userContent })
   }
+
+  // Log final message structure
+  const structureSummary = messages.map((m) => {
+    if (typeof m.content === "string") return `${m.role}(text)`
+    const textCount = m.content.filter((c) => c.type === "text").length
+    const imgCount = m.content.filter((c) => c.type === "image_url").length
+    return `${m.role}(${textCount} text, ${imgCount} images)`
+  }).join(", ")
+  console.log(`[ai-gateway] Final messages: [${structureSummary}]`)
 
   return messages
 }

@@ -34,18 +34,32 @@ export async function analyze(
   messages: ChatMessage[],
   temperature = 0.1
 ): Promise<string> {
-  const forwardToken = process.env.LAVA_FORWARD_TOKEN
-  if (!forwardToken) {
-    throw new Error("LAVA_FORWARD_TOKEN is not set in environment")
+  const secretKey = process.env.LAVA_SECRET_KEY
+  if (!secretKey) {
+    throw new Error("LAVA_SECRET_KEY is not set in environment")
   }
 
   const lava = new Lava() // Still needed to access lava.providers easily
   const OPENAI_CHAT_URL = lava.providers.openai + "/chat/completions"
 
-  console.log("[transport] Calling OpenAI via Lava forward token")
+  console.log("[transport] Calling OpenAI via Lava secret key")
   console.log("[transport] Endpoint:", OPENAI_CHAT_URL)
   console.log("[transport] Model:", MODEL)
   console.log("[transport] Messages count:", messages.length)
+
+  // Log message structure summary for debugging MIME type issues
+  for (const msg of messages) {
+    if (typeof msg.content === "string") {
+      console.log(`[transport] Message: role=${msg.role}, content=text (${msg.content.length} chars)`)
+    } else if (Array.isArray(msg.content)) {
+      const parts = msg.content.map((c) => {
+        if (c.type === "text") return `text(${c.text?.length ?? 0})`
+        if (c.type === "image_url") return `image(${c.image_url?.url.slice(0, 30)}...)`
+        return c.type
+      })
+      console.log(`[transport] Message: role=${msg.role}, content=[${parts.join(", ")}]`)
+    }
+  }
 
   let data: ChatCompletionResponse
 
@@ -54,7 +68,7 @@ export async function analyze(
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        Authorization: `Bearer ${forwardToken}`,
+        Authorization: `Bearer ${secretKey}`,
       },
       body: JSON.stringify({
         model: MODEL,

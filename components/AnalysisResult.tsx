@@ -45,7 +45,25 @@ function formatDate(value: string | null): string {
 }
 
 export function AnalysisResultDisplay({ result }: AnalysisResultProps) {
-  const { extractedFields, detectedIssues, explanation, recommendedActions, caseId, analyzedAt } = result
+  const caseId = result.caseId ?? "unknown"
+  const analyzedAt = result.analyzedAt ?? new Date().toISOString()
+  const explanation = result.explanation ?? "No explanation provided."
+  const detectedIssues = result.detectedIssues ?? []
+  const recommendedActions = result.recommendedActions ?? []
+  const ef = result.extractedFields
+  const extractedFields = {
+    provider: ef?.provider ?? null,
+    insurer: ef?.insurer ?? null,
+    billedAmount: ef?.billedAmount ?? null,
+    insurerPaid: ef?.insurerPaid ?? null,
+    patientResponsibility: ef?.patientResponsibility ?? null,
+    denialReason: ef?.denialReason ?? null,
+    cptCodes: Array.isArray(ef?.cptCodes) ? ef.cptCodes : [],
+    serviceDate: ef?.serviceDate ?? null,
+    claimNumber: ef?.claimNumber ?? null,
+    memberID: ef?.memberID ?? null,
+  }
+
   const errorCount = detectedIssues.filter((i) => i.severity === "error").length
   const warningCount = detectedIssues.filter((i) => i.severity === "warning").length
 
