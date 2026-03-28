@@ -202,6 +202,28 @@ export function AnalysisResultDisplay({ result }: AnalysisResultProps) {
         </CardContent>
       </Card>
 
+      {/* Section 5: Relevant Laws */}
+      {(result.laws ?? []).length > 0 && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <ScaleIcon />
+              Relevant Legal Protections
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-3">
+              {(result.laws ?? []).map((law, i) => (
+                <div key={i} className="rounded-lg border border-indigo-200 bg-indigo-50 p-3">
+                  <p className="text-sm font-semibold text-indigo-900">{law.title}</p>
+                  <p className="mt-1 text-sm text-[var(--foreground)]">{law.description}</p>
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
       {/* Take Action (stubbed) */}
       <div className="rounded-lg border border-dashed border-[var(--border)] p-4 text-center">
         <p className="mb-3 text-sm text-[var(--muted-foreground)]">
@@ -286,6 +308,14 @@ function CheckIcon() {
   return (
     <svg className="h-5 w-5 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" />
+    </svg>
+  )
+}
+
+function ScaleIcon() {
+  return (
+    <svg className="h-5 w-5 text-indigo-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 6l3 1m0 0l-3 9a5.002 5.002 0 006.001 0M6 7l3 9M6 7l6-2m6 2l3-1m-3 1l-3 9a5.002 5.002 0 006.001 0M18 7l3 9m-3-9l-6-2m0-2v2m0 16V5m0 16H9m3 0h3" />
     </svg>
   )
 }
