@@ -16,6 +16,43 @@ import { v4 as uuidv4 } from "uuid"
 import { getAI, MODEL_NAME } from "@/lib/gemini"
 import type { AnalysisResult, ExtractedFields, DetectedIssue, RecommendedAction } from "@/types/analysis"
 
+const EMPTY_FIELDS: ExtractedFields = {
+  provider: null,
+  insurer: null,
+  billedAmount: null,
+  insurerPaid: null,
+  patientResponsibility: null,
+  denialReason: null,
+  cptCodes: [],
+  serviceDate: null,
+  claimNumber: null,
+  memberID: null,
+}
+
+/**
+ * Normalize LLM response to ensure all required fields exist with correct types.
+ * The model may omit fields or return null for arrays.
+ */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function normalizeResponse(parsed: any): {
+  extractedFields: ExtractedFields
+  detectedIssues: DetectedIssue[]
+  explanation: string
+  recommendedActions: RecommendedAction[]
+} {
+  const ef = parsed.extractedFields ?? {}
+  return {
+    extractedFields: {
+      ...EMPTY_FIELDS,
+      ...ef,
+      cptCodes: Array.isArray(ef.cptCodes) ? ef.cptCodes : [],
+    },
+    detectedIssues: Array.isArray(parsed.detectedIssues) ? parsed.detectedIssues : [],
+    explanation: parsed.explanation ?? "No explanation provided.",
+    recommendedActions: Array.isArray(parsed.recommendedActions) ? parsed.recommendedActions : [],
+  }
+}
+
 export interface AnalyzeInput {
   /** Extracted text (for text-based PDFs) */
   text?: string | null
@@ -200,13 +237,7 @@ export async function analyzeDocuments(input: MultiAnalyzeInput): Promise<Analys
   const raw = response.text
   if (!raw) throw new Error("Empty response from model")
 
-  let parsed: {
-    extractedFields: ExtractedFields
-    detectedIssues: DetectedIssue[]
-    explanation: string
-    recommendedActions: RecommendedAction[]
-  }
-
+  let parsed: unknown
   try {
     parsed = JSON.parse(raw)
   } catch {
@@ -216,7 +247,7 @@ export async function analyzeDocuments(input: MultiAnalyzeInput): Promise<Analys
   return {
     caseId: uuidv4(),
     analyzedAt: new Date().toISOString(),
-    ...parsed,
+    ...normalizeResponse(parsed),
   }
 }
 
@@ -267,13 +298,7 @@ export async function analyzeDocument(input: AnalyzeInput): Promise<AnalysisResu
   const raw = response.text
   if (!raw) throw new Error("Empty response from model")
 
-  let parsed: {
-    extractedFields: ExtractedFields
-    detectedIssues: DetectedIssue[]
-    explanation: string
-    recommendedActions: RecommendedAction[]
-  }
-
+  let parsed: unknown
   try {
     parsed = JSON.parse(raw)
   } catch {
@@ -283,6 +308,6 @@ export async function analyzeDocument(input: AnalyzeInput): Promise<AnalysisResu
   return {
     caseId: uuidv4(),
     analyzedAt: new Date().toISOString(),
-    ...parsed,
+    ...normalizeResponse(parsed),
   }
 }
