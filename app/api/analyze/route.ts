@@ -1,25 +1,23 @@
 /**
  * POST /api/analyze
  *
- * Accepts: multipart/form-data with a `file` field (PDF or image)
+ * Accepts: multipart/form-data with:
+ *   - `bill` (required) + `eob` (required) + `denialLetter` (optional)
+ *   - OR legacy single `file` field
+ *
  * Returns: AnalysisResult JSON
  *
  * Pipeline:
- * 1. Parse uploaded file
- * 2. Extract text (pdf-parse) or flag for vision
- * 3. Call analyzer agent (Gemini)
+ * 1. Parse uploaded files
+ * 2. Extract text (pdf-parse) or flag for vision per file
+ * 3. Call analyzer agent
  * 4. Return structured result
- *
- * Future integration points:
- * - Auth: check session/token before processing
- * - Persistence: save result to Supabase `cases` table
- * - RAG: store embedding to knowledge_base table after analysis
- * - Action routing: trigger action agent if auto-dispatch is enabled
  */
 
 import { NextRequest, NextResponse } from "next/server"
 import { extractFromPDF, extractFromImage } from "@/lib/extract"
-import { analyzeDocument } from "@/lib/agents/analyzer"
+import { analyzeDocument, analyzeDocuments } from "@/lib/agents/analyzer"
+import type { AnalyzeInput } from "@/lib/agents/analyzer"
 import type { AnalysisResult } from "@/types/analysis"
 
 const ACCEPTED_MIME_TYPES = [
@@ -34,6 +32,55 @@ const ACCEPTED_MIME_TYPES = [
 
 const MAX_FILE_SIZE_BYTES = 20 * 1024 * 1024 // 20MB
 
+function validateFile(file: unknown, fieldName: string): File | null {
+  if (!file || !(file instanceof File)) return null
+
+  if (!ACCEPTED_MIME_TYPES.includes(file.type)) {
+    throw new Error(`Unsupported file type for ${fieldName}: ${file.type}. Accepted: PDF, JPEG, PNG, WebP, HEIC`)
+  }
+
+  if (file.size > MAX_FILE_SIZE_BYTES) {
+    throw new Error(`${fieldName} too large (${(file.size / 1024 / 1024).toFixed(1)}MB). Maximum size is 20MB.`)
+  }
+
+  return file
+}
+
+async function extractFile(file: File): Promise<AnalyzeInput> {
+  const arrayBuffer = await file.arrayBuffer()
+  const buffer = Buffer.from(arrayBuffer)
+
+  let text: string | null = null
+  let useVision = false
+  let images: string[] | undefined
+
+  if (file.type === "application/pdf") {
+    const extraction = await extractFromPDF(buffer)
+    text = extraction.text
+    useVision = extraction.useVision
+    images = extraction.images
+    console.log(`[/api/analyze] PDF extraction for ${file.name}:`, {
+      textLength: text?.length ?? 0,
+      useVision,
+      renderedPages: images?.length ?? 0,
+    })
+  } else {
+    const extraction = extractFromImage()
+    text = extraction.text
+    useVision = extraction.useVision
+    console.log(`[/api/analyze] Image file ${file.name}, using vision directly`)
+  }
+
+  const imageBase64 = useVision && !images?.length ? buffer.toString("base64") : null
+
+  return {
+    text,
+    imageBase64,
+    images,
+    mimeType: file.type,
+  }
+}
+
 export async function POST(req: NextRequest) {
   try {
     const contentType = req.headers.get("content-type") ?? ""
@@ -45,63 +92,65 @@ export async function POST(req: NextRequest) {
     }
 
     const formData = await req.formData()
+
+    // --- Multi-file path: bill + eob + optional denialLetter ---
+    const billRaw = formData.get("bill")
+    const eobRaw = formData.get("eob")
+
+    if (billRaw && eobRaw) {
+      console.log("[/api/analyze] Multi-file upload detected")
+
+      const bill = validateFile(billRaw, "Medical Bill")
+      const eob = validateFile(eobRaw, "EOB")
+
+      if (!bill || !eob) {
+        return NextResponse.json(
+          { error: "Both medical bill and EOB files are required." },
+          { status: 400 }
+        )
+      }
+
+      const denialLetterRaw = formData.get("denialLetter")
+      const denialLetter = denialLetterRaw ? validateFile(denialLetterRaw, "Denial Letter") : null
+
+      console.log("[/api/analyze] Files received:", {
+        bill: `${bill.name} (${bill.type})`,
+        eob: `${eob.name} (${eob.type})`,
+        denialLetter: denialLetter ? `${denialLetter.name} (${denialLetter.type})` : "none",
+      })
+
+      const [billInput, eobInput] = await Promise.all([
+        extractFile(bill),
+        extractFile(eob),
+      ])
+
+      const denialInput = denialLetter ? await extractFile(denialLetter) : undefined
+
+      const result: AnalysisResult = await analyzeDocuments({
+        bill: billInput,
+        eob: eobInput,
+        denialLetter: denialInput,
+      })
+
+      return NextResponse.json(result)
+    }
+
+    // --- Legacy single-file path ---
     const file = formData.get("file")
 
     if (!file || !(file instanceof File)) {
       return NextResponse.json(
-        { error: "No file provided. Include a `file` field in the form data." },
+        { error: "No files provided. Include `bill` and `eob` fields, or a single `file` field." },
         { status: 400 }
       )
     }
 
-    if (!ACCEPTED_MIME_TYPES.includes(file.type)) {
-      return NextResponse.json(
-        { error: `Unsupported file type: ${file.type}. Accepted: PDF, JPEG, PNG, WebP, HEIC` },
-        { status: 400 }
-      )
-    }
+    console.log("[/api/analyze] Single-file upload (legacy)")
 
-    if (file.size > MAX_FILE_SIZE_BYTES) {
-      return NextResponse.json(
-        { error: `File too large (${(file.size / 1024 / 1024).toFixed(1)}MB). Maximum size is 20MB.` },
-        { status: 400 }
-      )
-    }
+    validateFile(file, "file")
 
-    const arrayBuffer = await file.arrayBuffer()
-    const buffer = Buffer.from(arrayBuffer)
-
-    // --- Step 1: Extract text or prepare for vision ---
-    let text: string | null = null
-    let useVision = false
-    let images: string[] | undefined
-
-    if (file.type === "application/pdf") {
-      const extraction = await extractFromPDF(buffer)
-      text = extraction.text
-      useVision = extraction.useVision
-      images = extraction.images
-      console.log("[/api/analyze] PDF extraction:", {
-        textLength: text?.length ?? 0,
-        useVision,
-        renderedPages: images?.length ?? 0,
-      })
-    } else {
-      const extraction = extractFromImage()
-      text = extraction.text
-      useVision = extraction.useVision
-      console.log("[/api/analyze] Image file, using vision directly")
-    }
-
-    // --- Step 2: Analyze with OpenAI via Lava ---
-    const imageBase64 = useVision && !images?.length ? buffer.toString("base64") : null
-
-    const result: AnalysisResult = await analyzeDocument({
-      text,
-      imageBase64,
-      images,
-      mimeType: file.type,
-    })
+    const input = await extractFile(file)
+    const result: AnalysisResult = await analyzeDocument(input)
 
     return NextResponse.json(result)
   } catch (err) {
@@ -109,7 +158,6 @@ export async function POST(req: NextRequest) {
 
     const message = err instanceof Error ? err.message : "Unknown error"
 
-    // Surface Lava API errors clearly
     if (message.includes("LAVA_SECRET_KEY")) {
       return NextResponse.json(
         { error: "Lava API key not configured. Set LAVA_SECRET_KEY in .env.local." },
