@@ -1,14 +1,27 @@
-import { Lava } from "@lavapayments/nodejs";
-const lava = new Lava(process.env.LAVA_SECRET_KEY);
+export interface LineItem {
+  code: string;
+  description: string;
+  amount: string;
+}
 
-async function researchMedicalBillingLaw(state, city, issue, lineItems = []) {
+export interface LegalResearchParams {
+  state: string;
+  city: string;
+  issue: string;
+  lineItems?: LineItem[];
+}
+
+// ── Prompt builder (shared between the streaming route and any direct callers) ──
+export function buildLegalPrompts({
+  state,
+  city,
+  issue,
+  lineItems = [],
+}: LegalResearchParams): { systemPrompt: string; userMessage: string } {
   const issueLC = issue.toLowerCase();
 
-  // ── Auto-detect issue context ──────────────────────────────────────────────
   const flags = {
-    isSurpriseBilling: /surprise.bill|out.of.network|balance.bill/.test(
-      issueLC,
-    ),
+    isSurpriseBilling: /surprise.bill|out.of.network|balance.bill/.test(issueLC),
     isEmergency: /emergency|er|emtala|urgent/.test(issueLC),
     isDenial: /deni|refused|not covered|rejected/.test(issueLC),
     isOvercharge: /overcharg|upcod|inflat|duplicate|excess/.test(issueLC),
@@ -24,8 +37,7 @@ async function researchMedicalBillingLaw(state, city, issue, lineItems = []) {
     .filter(([, v]) => v)
     .map(([k]) => k);
 
-  // ── Build adaptive system prompt ───────────────────────────────────────────
-  const SYSTEM_PROMPT = `
+  const systemPrompt = `
 You are an expert medical billing attorney and legal researcher specializing in US healthcare law.
 
 Your job is to help patients dispute medical bills by identifying SPECIFIC laws, statutes,
@@ -40,7 +52,7 @@ RESEARCH INSTRUCTIONS:
 1. UNIVERSAL PROTECTIONS — laws that apply to ALL line items:
    - Always check: No Surprises Act (42 U.S.C. § 300gg-111), ACA, ERISA, HIPAA
    ${flags.isEmergency ? "- EMTALA (42 U.S.C. § 1395dd) — must be cited for emergency cases" : ""}
-   ${flags.isSurpriseBilling ? "- No Surprises Act IDR process and its ${state} equivalent" : ""}
+   ${flags.isSurpriseBilling ? `- No Surprises Act IDR process and its ${state} equivalent` : ""}
    ${flags.isMentalHealth ? "- Mental Health Parity and Addiction Equity Act (MHPAEA)" : ""}
    ${flags.isMedicare ? "- CMS Medicare billing rules, MSP provisions" : ""}
    ${flags.isMedicaid ? "- Medicaid EPSDT, state plan requirements" : ""}
@@ -69,20 +81,18 @@ For each law:
 ### 2. Supporting protections
 ### 3. Dispute letter language for this line item
 
-## RECOMMENDED DISPUTE STRATEGY
-Summarize the top 3 most powerful arguments given this specific state, city, and issue.
+DO NOT GIVE ANY ADDITIONAL INFORMATION PAST THIS. NO SPECIAL FORMATTING IN OUTPUT, ENSURE PROPER GRAMMAR
+Always cite REAL statutes with exact section numbers. Do not generalize. ONLY SHOW THAT STUFF, NOT YOUR THINKING PROCESS.
+DO NOT EXCEED MORE THAN 2-3 SENTENCES FOR EACH SECTION.
+`.trim();
 
-Always cite REAL statutes with exact section numbers. Do not generalize.
-`;
-
-  // ── Build user message ─────────────────────────────────────────────────────
   const lineItemText = lineItems.length
     ? `\nDisputed Line Items:\n${lineItems
-        .map(
-          (item, i) =>
-            `${i + 1}. CPT: ${item.code} | Service: ${item.description} | Billed: $${item.amount}`,
-        )
-        .join("\n")}`
+      .map(
+        (item, i) =>
+          `${i + 1}. CPT: ${item.code} | Service: ${item.description} | Billed: $${item.amount}`,
+      )
+      .join("\n")}`
     : "\nNo specific line items provided — research general protections for this issue type.";
 
   const userMessage = `
@@ -94,9 +104,18 @@ ${lineItemText}
 Research all applicable federal, ${state} state, and ${city} local laws that REQUIRE
 the hospital or insurer to pay, reimburse, or reduce these charges.
 Provide a hierarchy from most to least applicable, with exact statute citations.
-`;
+`.trim();
 
-  // ── API call ───────────────────────────────────────────────────────────────
+  return { systemPrompt, userMessage };
+}
+
+// ── Convenience wrapper for non-streaming server-side use ────────────────────
+export async function researchMedicalBillingLaw(
+  params: LegalResearchParams,
+): Promise<string> {
+  const { systemPrompt, userMessage } = buildLegalPrompts(params);
+  const { state } = params;
+
   const response = await fetch(
     "https://api.lava.so/v1/forward?u=https%3A%2F%2Fapi.perplexity.ai%2Fchat%2Fcompletions",
     {
@@ -108,7 +127,7 @@ Provide a hierarchy from most to least applicable, with exact statute citations.
       body: JSON.stringify({
         model: "sonar-deep-research",
         messages: [
-          { role: "system", content: SYSTEM_PROMPT },
+          { role: "system", content: systemPrompt },
           { role: "user", content: userMessage },
         ],
         search_domain_filter: [
@@ -123,12 +142,13 @@ Provide a hierarchy from most to least applicable, with exact statute citations.
     },
   );
 
-  const data = await response.json();
-  return data.choices?.[0]?.message?.content;
-}
+  if (!response.ok) {
+    const errorText = await response.text();
+    throw new Error(`Perplexity API error (${response.status}): ${errorText}`);
+  }
 
-const result = await researchMedicalBillingLaw(
-  "California",
-  "Los Angeles",
-  "surprise billing after emergency room visit with out-of-network anesthesiologist",
-);
+  const data = await response.json();
+  const content = data.choices?.[0]?.message?.content;
+  if (!content) throw new Error("No content returned from legal research agent");
+  return content;
+}
