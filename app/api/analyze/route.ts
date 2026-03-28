@@ -71,7 +71,23 @@ async function extractFile(file: File): Promise<AnalyzeInput> {
     console.log(`[/api/analyze] Image file ${file.name}, using vision directly`)
   }
 
-  const imageBase64 = useVision && !images?.length ? buffer.toString("base64") : null
+  // Only use raw buffer as imageBase64 for actual image uploads, never for PDFs
+  const isImageFile = file.type.startsWith("image/")
+  const imageBase64 = useVision && !images?.length && isImageFile ? buffer.toString("base64") : null
+
+  // Safety: if a PDF needed vision but has no rendered images and no imageBase64, it's unprocessable
+  if (useVision && !images?.length && !imageBase64 && !text) {
+    throw new Error(`Cannot process ${file.name}: PDF extraction and rendering both failed. The file may be corrupted.`)
+  }
+
+  const contentPath = text
+    ? `text (${text.length} chars)`
+    : images?.length
+    ? `vision-images (${images.length} pages)`
+    : imageBase64
+    ? `vision-direct (${file.type})`
+    : "empty"
+  console.log(`[/api/analyze] File: ${file.name} | type: ${file.type} | path: ${contentPath}`)
 
   return {
     text,
