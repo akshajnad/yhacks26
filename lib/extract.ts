@@ -73,7 +73,7 @@ export async function extractFromPDF(buffer: Buffer): Promise<ExtractionResult> 
       return { text, useVision: false }
     }
 
-    return { text: null, useVision: true }
+    throw new Error("PDF processing failed: text extraction yielded no content and page rendering was unavailable. The PDF may be corrupted or password-protected.")
   } catch {
     // Parse failure — try image rendering
     console.log("[extract] pdf-parse failed, attempting image rendering")
@@ -86,7 +86,7 @@ export async function extractFromPDF(buffer: Buffer): Promise<ExtractionResult> 
       console.error("[extract] PDF image rendering also failed:", renderErr instanceof Error ? renderErr.message : String(renderErr))
     }
 
-    return { text: null, useVision: true }
+    throw new Error("PDF processing failed: both text extraction and page rendering failed. The PDF may be corrupted, password-protected, or empty.")
   }
 }
 
