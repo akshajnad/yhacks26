@@ -1,4 +1,5 @@
 "use client"
+import Link from "next/link"
 import { useAuth0 } from "@auth0/auth0-react"
 import { useEffect, useState } from "react"
 
@@ -39,12 +40,12 @@ export default function Home() {
 
         <div className="mt-8 flex flex-wrap items-center gap-3">
           {mounted && !isLoading && user ? (
-            <a
+            <Link
               href="/dashboard"
               className="rounded-md bg-slate-900 px-5 py-2.5 text-sm font-medium text-white hover:bg-slate-800"
             >
               Open dashboard
-            </a>
+            </Link>
           ) : mounted && !isLoading ? (
             <button
               onClick={() => loginWithRedirect()}
