@@ -3,8 +3,8 @@
  *
  * Body: { city: string; state: string; issue: string; lineItems?: LineItem[] }
  *
- * Calls GPT-5.4 directly, streams the response, and strips any
- * <think> / reasoning blocks before forwarding tokens to the client.
+ * Calls GPT-4o-Search-Preview (web-search focused, low yapping) directly.
+ * Streams the response and strips any <think> blocks or meta-preamble.
  *
  * SSE format:   data: <token>\n\n
  * Terminated:   data: [DONE]\n\n
@@ -45,7 +45,7 @@ export async function POST(req: NextRequest) {
         lineItems: lineItems as { code: string; description: string; amount: string }[],
     });
 
-    // ── Call GPT-5.4 with streaming ──────────────────────────────────────────
+    // ── Call Web-Search-Preview ──────────────────────────────────────────────
     let upstream: Response;
     try {
         upstream = await fetch(
@@ -60,14 +60,8 @@ export async function POST(req: NextRequest) {
                     model: "gpt-4o-search-preview",
                     stream: true,
                     messages: [
-                        {
-                            role: "system",
-                            content: systemPrompt,
-                        },
-                        {
-                            role: "user",
-                            content: userMessage,
-                        },
+                        { role: "system", content: systemPrompt },
+                        { role: "user", content: userMessage },
                     ],
                 }),
             }
@@ -88,7 +82,7 @@ export async function POST(req: NextRequest) {
         );
     }
 
-    // ── Stream tokens → browser, stripping any thinking blocks ──────────────
+    // ── Stream tokens → browser, stripping yapping ──────────────────────────
     const encoder = new TextEncoder();
     const decoder = new TextDecoder();
 
@@ -102,17 +96,12 @@ export async function POST(req: NextRequest) {
             const reader = upstream.body!.getReader();
             let sseBuffer = "";
 
-            // Thinking-strip state machine
-            // We accumulate a small "lookahead" buffer to detect opening tags
-            // that may span multiple SSE chunks, then suppress until close tag.
-            let thinkBuffer = ""; // holds suppressed content inside a think block
-            let inThink = false;  // are we currently inside a <think> block?
+            let thinkBuffer = "";
+            let inThink = false;
 
             const OPEN_TAGS = ["<think>", "<thinking>"];
             const CLOSE_TAGS = ["</think>", "</thinking>"];
 
-            // Also strip the preamble "(User is saying...)" pattern that GPT sometimes emits.
-            // We track a rolling window of output chars to detect and cut it.
             let outputSoFar = "";
             let preambleStripped = false;
 
@@ -123,50 +112,46 @@ export async function POST(req: NextRequest) {
                         const idx = thinkBuffer.indexOf(ct);
                         if (idx !== -1) {
                             inThink = false;
-                            // Emit anything after the close tag
                             const after = thinkBuffer.slice(idx + ct.length);
                             thinkBuffer = "";
                             if (after) processToken(after);
                             return;
                         }
                     }
-                    // Still inside think block — keep buffering, emit nothing
                     return;
                 }
 
-                // Peek for opening tags
                 for (const ot of OPEN_TAGS) {
                     const idx = token.indexOf(ot);
                     if (idx !== -1) {
-                        // Emit anything before the tag
                         const before = token.slice(0, idx);
                         if (before) send(before);
                         inThink = true;
                         thinkBuffer = "";
-                        // Process remainder after the opening tag recursively
                         const remainder = token.slice(idx + ot.length);
                         if (remainder) processToken(remainder);
                         return;
                     }
                 }
 
-                // Strip common preamble patterns like "(User is saying...)", "(Expecting...)"
-                // by detecting parenthesized meta-commentary at the very start of output.
                 if (!preambleStripped) {
                     outputSoFar += token;
-                    // Check for preamble markers like "(User is saying...)" or "(Expecting...)"
-                    // These typically happen at the very beginning within parentheses.
                     if (outputSoFar.length > 5) {
-                        // Look for a completed parenthetical block at the start
-                        const parenMatch = outputSoFar.match(/^\s*\([^)]+\)\s*/);
+                        // Strip reasoning parentheticals
+                        const parenMatch = outputSoFar.match(/^\s*\([^]*?\)\s*/);
                         if (parenMatch) {
-                            // If we find one, we strip it and anything before it.
-                            // We don't mark preambleStripped=true yet, because there could be another one.
                             outputSoFar = outputSoFar.slice(parenMatch[0].length);
                             return;
                         }
 
-                        // If it starts with a numbered item, we are past the preamble.
+                        // Strip yapping lines
+                        const lineMatch = outputSoFar.match(/^\s*(Thinking|Goal|Context|User is saying|The user wants|Task):[^\n]*\n/i);
+                        if (lineMatch) {
+                            outputSoFar = outputSoFar.slice(lineMatch[0].length);
+                            return;
+                        }
+
+                        // Detect start of list
                         if (/^\s*[1]\./.test(outputSoFar)) {
                             preambleStripped = true;
                             send(outputSoFar);
@@ -174,7 +159,6 @@ export async function POST(req: NextRequest) {
                             return;
                         }
 
-                        // Safety: if we get too much text without finding a numbered item or paren, just flush it.
                         if (outputSoFar.length > 500) {
                             preambleStripped = true;
                             send(outputSoFar);
@@ -198,7 +182,6 @@ export async function POST(req: NextRequest) {
                 for (const line of lines) {
                     const trimmed = line.trim();
                     if (!trimmed || !trimmed.startsWith("data:")) continue;
-
                     const jsonStr = trimmed.slice(5).trim();
                     if (jsonStr === "[DONE]") continue;
 
@@ -206,13 +189,10 @@ export async function POST(req: NextRequest) {
                         const parsed = JSON.parse(jsonStr);
                         const delta: string | undefined = parsed.choices?.[0]?.delta?.content;
                         if (delta) processToken(delta);
-                    } catch {
-                        // skip malformed chunks
-                    }
+                    } catch { }
                 }
             }
 
-            // Flush remaining SSE buffer
             if (sseBuffer.trim()) {
                 const trimmed = sseBuffer.trim();
                 if (trimmed.startsWith("data:")) {
@@ -222,14 +202,12 @@ export async function POST(req: NextRequest) {
                             const parsed = JSON.parse(jsonStr);
                             const delta: string | undefined = parsed.choices?.[0]?.delta?.content;
                             if (delta) processToken(delta);
-                        } catch { /* ignore */ }
+                        } catch { }
                     }
                 }
             }
 
-            // Flush any remaining preamble buffer (edge case: very short response)
             if (outputSoFar) send(outputSoFar);
-
             controller.enqueue(encoder.encode("data: [DONE]\n\n"));
             controller.close();
         },
