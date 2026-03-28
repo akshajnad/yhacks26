@@ -43,8 +43,26 @@ export async function extractFromPDF(buffer: Buffer): Promise<ExtractionResult> 
 }
 
 /**
- * Images are always analyzed via Gemini vision (no local text extraction).
+ * Images are always analyzed via vision (no local text extraction).
  */
 export function extractFromImage(): ExtractionResult {
   return { text: null, useVision: true }
+}
+
+/**
+ * Extract plain text from a base64-encoded PDF.
+ * Used by the AI gateway as a last-resort fallback when all vision paths fail
+ * (e.g. scanned PDF that both Lava/OpenAI and Gemini vision APIs reject).
+ * Returns null if extraction fails or yields no content.
+ */
+export async function extractTextFromBase64PDF(base64: string): Promise<string | null> {
+  try {
+    const buffer = Buffer.from(base64, "base64")
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    const pdfParse: (buffer: Buffer) => Promise<{ text: string }> = require("pdf-parse")
+    const result = await pdfParse(buffer)
+    return result.text?.trim() || null
+  } catch {
+    return null
+  }
 }
