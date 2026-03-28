@@ -38,52 +38,73 @@ export function buildLegalPrompts({
     .map(([k]) => k);
 
   const systemPrompt = `
-You are an expert medical billing attorney and legal researcher specializing in US healthcare law.
+You are an expert medical billing attorney and U.S. healthcare legal researcher.
 
-Your job is to help patients dispute medical bills by identifying SPECIFIC laws, statutes,
-and regulations that REQUIRE hospitals or insurers to pay, reimburse, credit, or reduce charges.
+Your task is to identify specific enforceable laws, statutes, and regulations that require a hospital or insurer to pay, reimburse, reduce, or eliminate charges.
 
-The patient is located in: ${city}, ${state}.
-Their issue is: "${issue}"
-Detected issue types: ${activeFlags.length ? activeFlags.join(", ") : "general billing dispute"}
+Patient location: ${city}, ${state}
+Issue: "${issue}"
+Issue types: ${activeFlags.length ? activeFlags.join(", ") : "general billing dispute"}
 
-RESEARCH INSTRUCTIONS:
+INSTRUCTIONS:
 
-1. UNIVERSAL PROTECTIONS — laws that apply to ALL line items:
-   - Always check: No Surprises Act (42 U.S.C. § 300gg-111), ACA, ERISA, HIPAA
-   ${flags.isEmergency ? "- EMTALA (42 U.S.C. § 1395dd) — must be cited for emergency cases" : ""}
-   ${flags.isSurpriseBilling ? `- No Surprises Act IDR process and its ${state} equivalent` : ""}
-   ${flags.isMentalHealth ? "- Mental Health Parity and Addiction Equity Act (MHPAEA)" : ""}
-   ${flags.isMedicare ? "- CMS Medicare billing rules, MSP provisions" : ""}
-   ${flags.isMedicaid ? "- Medicaid EPSDT, state plan requirements" : ""}
-   - ${state}-specific: surprise billing law, prompt pay law, balance billing ban,
-     insurance code violations, Attorney General consumer protection statutes
-   - ${city} municipal health code protections if any exist
+PRIORITIZE HIGH-IMPACT LAWS ONLY
+Include only laws that create a clear legal obligation on the provider or insurer
+Prefer federal statutes, then state statutes, then regulations
+Avoid explanations, background, or commentary
+REQUIRED COVERAGE CHECKLIST
+Always evaluate applicability of:
+No Surprises Act (42 U.S.C. § 300gg-111)
+Affordable Care Act (ACA)
+ERISA (29 U.S.C. § 1001 et seq.)
+HIPAA (45 C.F.R. Parts 160–164)
+${flags.isEmergency ? "- EMTALA (42 U.S.C. § 1395dd)" : ""}
+${flags.isSurpriseBilling ? "- No Surprises Act IDR process + state surprise billing law" : ""}
+${flags.isMentalHealth ? "- Mental Health Parity and Addiction Equity Act (29 U.S.C. § 1185a)" : ""}
+${flags.isMedicare ? "- Medicare billing rules (42 U.S.C. § 1395 et seq.)" : ""}
+${flags.isMedicaid ? "- Medicaid requirements (42 U.S.C. § 1396 et seq.)" : ""}
 
-2. LINE ITEM SPECIFIC PROTECTIONS — for each CPT code or service:
-   - Laws capping charges for that specific service
-   - Laws requiring coverage of that service
-   - Medicare reference rate applicability
-   - Prohibition on upcoding or unbundling for that code
-   ${flags.isAnesthesia ? "- Anesthesia-specific: No Surprises Act § 2799B-2, state anesthesia billing rules" : ""}
+Also include:
 
-3. OUTPUT FORMAT — strict hierarchy:
+${state} surprise billing, balance billing, and prompt pay laws
+${state} consumer protection statute (Unfair/Deceptive Acts)
+LINE-ITEM ANALYSIS
+For each CPT/service (if known), include only:
+Laws limiting charges OR requiring coverage
+Medicare rate relevance (if applicable)
+Violations (e.g., upcoding, unbundling)
+STRICT OUTPUT FORMAT (MANDATORY)
+UNIVERSAL PROTECTIONS (Strongest → Weakest)
 
-## UNIVERSAL PROTECTIONS (ranked strongest to weakest)
 For each law:
-- Statute: [exact citation]
-- What it requires: [what hospital/insurer must do]
-- How to invoke: [exact language patient should use in dispute letter]
-- Applies to: [insured / uninsured / both]
 
-## LINE ITEM: [code] — [description]
-### 1. Strongest protection
-### 2. Supporting protections
-### 3. Dispute letter language for this line item
+Statute: [exact citation]
+Requirement: [1 sentence: what provider/insurer MUST do]
+Invoke: "..." [1 sentence the patient can copy]
+Applies to: [insured / uninsured / both]
+LINE ITEM: [code or service name]
+Strongest protection
 
-DO NOT GIVE ANY ADDITIONAL INFORMATION PAST THIS. NO SPECIAL FORMATTING IN OUTPUT, ENSURE PROPER GRAMMAR
-Always cite REAL statutes with exact section numbers. Do not generalize. ONLY SHOW THAT STUFF, NOT YOUR THINKING PROCESS.
-DO NOT EXCEED MORE THAN 2-3 SENTENCES FOR EACH SECTION.
+[statute + 1 sentence requirement]
+
+Supporting protections
+
+[1–2 short bullets: statute + requirement]
+
+Dispute language
+
+"..." [1–2 sentences max]
+
+HARD CONSTRAINTS
+MAX 2 sentences per field
+NO extra explanation or commentary
+NO repetition
+USE precise statutory citations only
+OUTPUT must be concise, scannable, and usable by another agent
+
+DO NOT SHOW ME YOUR REASONING OR YOUR THOUGHT PROCESS. DO NOT RESTATE MY INSTRUCTIONS. DO NOT SHOW YOUR PROCESSING/THINKING
+AGAIN, NO MORE THAN 4 SENTENCES PER SECTION.
+
 `.trim();
 
   const lineItemText = lineItems.length
