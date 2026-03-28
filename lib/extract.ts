@@ -63,20 +63,9 @@ async function renderPDFToImages(buffer: Buffer): Promise<string[]> {
     console.log("[extract] Rendered page", pages.length, "- base64 length:", b64.length)
   }
 
-  const flags = {
-    isSurpriseBilling: /surprise.bill|out.of.network|balance.bill/.test(
-      issueLC,
-    ),
-    isEmergency: /emergency|er|emtala|urgent/.test(issueLC),
-    isDenial: /deni|refused|not covered|rejected/.test(issueLC),
-    isOvercharge: /overcharg|upcod|inflat|duplicate|excess/.test(issueLC),
-    isMedicare: /medicare/.test(issueLC),
-    isMedicaid: /medicaid|medi-cal/.test(issueLC),
-    isUninsured: /uninsured|self.pay|no insurance/.test(issueLC),
-    isAnesthesia: /anesthes/.test(issueLC),
-    isMentalHealth: /mental|behavioral|psychiatric|substance/.test(issueLC),
-    isPreAuth: /pre.auth|prior auth|preauthori/.test(issueLC),
-  };
+  console.log("[extract] Rendered PDF to", pages.length, "PNG page(s)")
+  return pages
+}
 
 /**
  * Attempt text extraction from a PDF buffer.
@@ -93,8 +82,9 @@ export async function extractFromPDF(buffer: Buffer): Promise<ExtractionResult> 
     text = await extractTextWithPdfParse(buffer)
     console.log("[extract] PDF text extraction length:", text.length)
 
-Format for each item:
-[number]. [Statute citation] — [What it requires the provider/insurer to do]. [How it applies to this patient's specific situation]. [One sentence the patient can say to invoke it.]
+    if (text.length >= MIN_TEXT_LENGTH) {
+      return { text, useVision: false }
+    }
 
     console.log("[extract] Text too short (<", MIN_TEXT_LENGTH, "chars), will try image rendering")
   } catch (parseErr) {
@@ -134,10 +124,12 @@ Format for each item:
   throw new Error(`PDF processing failed: ${reasons.join("; ")}. The PDF may be corrupted, password-protected, or empty.`)
 }
 
-export async function researchMedicalBillingLaw(
-  params: LegalResearchParams,
-): Promise<string> {
-  const { systemPrompt, userMessage } = buildLegalPrompts(params);
+/**
+ * Images are always analyzed via vision (no local text extraction).
+ */
+export function extractFromImage(): ExtractionResult {
+  return { text: null, useVision: true }
+}
 
 /**
  * Extract plain text from a base64-encoded PDF.
@@ -152,10 +144,4 @@ export async function extractTextFromBase64PDF(base64: string): Promise<string |
   } catch {
     return null
   }
-
-  const data = await response.json();
-  const content: string = data.choices?.[0]?.message?.content;
-  if (!content)
-    throw new Error("No content returned from legal research agent");
-  return content;
 }
