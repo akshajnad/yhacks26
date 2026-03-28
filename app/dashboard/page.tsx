@@ -1,30 +1,155 @@
 "use client"
 
+import Link from "next/link"
 import { useAuth0 } from "@auth0/auth0-react"
-import { useEffect, useState } from "react"
-import { MultiUploadZone } from "@/components/MultiUploadZone"
-import { AnalysisResultDisplay } from "@/components/AnalysisResult"
-import type { AnalysisResult } from "@/types/analysis"
+import { useMemo, useState } from "react"
+import type { ActionCategory, AnalysisResult } from "@/types/analysis"
+
+const RECENT_ANALYSES_STORAGE_KEY = "redline.recent-analyses.v1"
+const MAX_RECENT_ANALYSES = 5
+
+const CATEGORY_LABELS: Record<ActionCategory, string> = {
+  contact_provider: "Contact Provider Billing",
+  file_appeal: "File Insurance Appeal",
+  legal_protection: "Use Legal Protection",
+  dispute_self_pay: "Dispute Self-Pay Balance",
+}
 
 function profileValue(value?: string | null) {
   if (!value) return "Not provided"
   return value
 }
 
+function formatCurrency(value: number | null): string {
+  if (value === null) return "-"
+  return new Intl.NumberFormat("en-US", {
+    style: "currency",
+    currency: "USD",
+    maximumFractionDigits: 0,
+  }).format(value)
+}
+
+function formatDateTime(value?: string | null): string {
+  if (!value) return "No analyses yet"
+  return new Date(value).toLocaleString()
+}
+
+function getPotentialSavings(result: AnalysisResult): number | null {
+  const patientResponsibility = result.extractedFields.patientResponsibility
+  if (typeof patientResponsibility === "number" && patientResponsibility > 0) return patientResponsibility
+
+  const billedAmount = result.extractedFields.billedAmount
+  const insurerPaid = result.extractedFields.insurerPaid
+  if (typeof billedAmount === "number" && typeof insurerPaid === "number") {
+    const delta = billedAmount - insurerPaid
+    return delta > 0 ? delta : null
+  }
+
+  return null
+}
+
+function getRecommendedAction(result: AnalysisResult): string {
+  const first = result.recommendedActions[0]
+  if (!first) return "Review findings"
+  return CATEGORY_LABELS[first.category]
+}
+
+function safelyReadRecentAnalyses(): AnalysisResult[] {
+  try {
+    const raw = localStorage.getItem(RECENT_ANALYSES_STORAGE_KEY)
+    if (!raw) return []
+
+    const parsed = JSON.parse(raw)
+    if (!Array.isArray(parsed)) return []
+
+    return parsed
+      .filter(
+        (item): item is AnalysisResult =>
+          Boolean(item) &&
+          typeof item === "object" &&
+          typeof item.caseId === "string" &&
+          typeof item.analyzedAt === "string" &&
+          Array.isArray(item.detectedIssues) &&
+          Array.isArray(item.recommendedActions) &&
+          typeof item.extractedFields === "object"
+      )
+      .slice(0, MAX_RECENT_ANALYSES)
+  } catch {
+    return []
+  }
+}
+
+function getInitialRecentAnalyses(): AnalysisResult[] {
+  if (typeof window === "undefined") return []
+  return safelyReadRecentAnalyses()
+}
+
 export default function DashboardPage() {
   const { user, isLoading, loginWithRedirect, logout } = useAuth0()
-  const [mounted, setMounted] = useState(false)
-  const [analysisResult, setAnalysisResult] = useState<AnalysisResult | null>(null)
-  const [error, setError] = useState("")
+  const [recentAnalyses] = useState<AnalysisResult[]>(() => getInitialRecentAnalyses())
+  const [selectedCaseId, setSelectedCaseId] = useState<string | null>(() => getInitialRecentAnalyses()[0]?.caseId ?? null)
 
-  useEffect(() => setMounted(true), [])
+  const recentItems = useMemo(() => recentAnalyses.slice(0, MAX_RECENT_ANALYSES), [recentAnalyses])
 
-  if (!mounted || isLoading) {
+  const selectedAnalysis = useMemo(() => {
+    if (selectedCaseId) {
+      const found = recentItems.find((item) => item.caseId === selectedCaseId)
+      if (found) return found
+    }
+    return recentItems[0] ?? null
+  }, [recentItems, selectedCaseId])
+
+  const totalSavings = useMemo(
+    () => recentItems.reduce((sum, item) => sum + (getPotentialSavings(item) ?? 0), 0),
+    [recentItems]
+  )
+
+  const totalIssues = useMemo(
+    () => recentItems.reduce((sum, item) => sum + item.detectedIssues.length, 0),
+    [recentItems]
+  )
+
+  const openActions = useMemo(
+    () => recentItems.filter((item) => item.detectedIssues.length > 0).length,
+    [recentItems]
+  )
+
+  const latestAnalysis = recentItems[0] ?? null
+
+  const originalCharges = selectedAnalysis?.extractedFields.billedAmount ?? null
+  const savingsValue = selectedAnalysis ? getPotentialSavings(selectedAnalysis) : null
+  const correctedCharges =
+    typeof originalCharges === "number" && typeof savingsValue === "number"
+      ? Math.max(originalCharges - savingsValue, 0)
+      : selectedAnalysis?.extractedFields.insurerPaid ?? null
+
+  const chartValues = [originalCharges ?? 0, correctedCharges ?? 0, savingsValue ?? 0]
+  const chartMax = Math.max(...chartValues, 1)
+
+  const bars = [
+    {
+      label: "Original Charges",
+      value: originalCharges,
+      className: "bg-slate-300",
+    },
+    {
+      label: "Corrected Charges",
+      value: correctedCharges,
+      className: "bg-blue-500",
+    },
+    {
+      label: "Savings",
+      value: savingsValue,
+      className: "bg-blue-700",
+    },
+  ]
+
+  if (isLoading) {
     return (
-      <section className="mx-auto w-full max-w-4xl px-4 py-16 sm:px-6">
-        <div className="rounded-xl border border-[var(--border)] bg-white p-8 shadow-sm">
+      <section className="mx-auto w-full max-w-6xl px-4 py-10 sm:px-6 lg:px-8">
+        <div className="rounded-xl border border-[var(--border)] bg-white p-8">
           <h1 className="text-2xl font-semibold tracking-tight text-slate-900">Dashboard</h1>
-          <p className="mt-3 text-sm leading-6 text-slate-600">Loading profile...</p>
+          <p className="mt-3 text-sm text-slate-600">Loading profile...</p>
         </div>
       </section>
     )
@@ -32,10 +157,10 @@ export default function DashboardPage() {
 
   if (!user) {
     return (
-      <section className="mx-auto w-full max-w-4xl px-4 py-16 sm:px-6">
-        <div className="rounded-xl border border-[var(--border)] bg-white p-8 shadow-sm">
+      <section className="mx-auto w-full max-w-6xl px-4 py-10 sm:px-6 lg:px-8">
+        <div className="rounded-xl border border-[var(--border)] bg-white p-8">
           <h1 className="text-2xl font-semibold tracking-tight text-slate-900">Dashboard</h1>
-          <p className="mt-3 text-sm leading-6 text-slate-600">
+          <p className="mt-3 text-sm text-slate-600">
             You are not signed in. Use Auth0 login to view your profile dashboard.
           </p>
           <button
@@ -50,87 +175,206 @@ export default function DashboardPage() {
   }
 
   return (
-    <section className="mx-auto w-full max-w-4xl px-4 py-16 sm:px-6 space-y-6">
-      {/* Profile card */}
-      <div className="rounded-xl border border-[var(--border)] bg-white p-8 shadow-sm">
-        <div className="flex flex-wrap items-center justify-between gap-4">
-          <div className="flex items-center gap-4">
+    <section className="mx-auto w-full max-w-6xl px-4 py-10 sm:px-6 lg:px-8">
+      <div className="space-y-10">
+        <header className="flex flex-wrap items-start justify-between gap-4">
+          <div>
+            <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Dashboard</p>
+            <h1 className="mt-1 text-2xl font-semibold tracking-tight text-slate-900">Billing Audit Workspace</h1>
+            <p className="mt-2 text-sm text-slate-600">
+              Monitor value delivered and move cleanly into a new analysis when needed.
+            </p>
+          </div>
+          <div className="flex items-center gap-3 rounded-lg border border-[var(--border)] bg-white px-3 py-2">
             {user.picture ? (
               // eslint-disable-next-line @next/next/no-img-element
               <img
                 src={user.picture}
                 alt={user.name ?? user.email ?? "User"}
-                className="h-12 w-12 rounded-full border border-[var(--border)] object-cover"
+                className="h-9 w-9 rounded-full border border-[var(--border)] object-cover"
               />
             ) : (
-              <div className="h-12 w-12 rounded-full border border-[var(--border)] bg-slate-100" />
+              <div className="h-9 w-9 rounded-full border border-[var(--border)] bg-slate-100" />
             )}
             <div>
-              <h1 className="text-lg font-semibold tracking-tight text-slate-900">{profileValue(user.name)}</h1>
-              <p className="text-sm text-slate-600">{profileValue(user.email)}</p>
+              <p className="text-sm font-medium tracking-tight text-slate-900">{profileValue(user.name)}</p>
+              <p className="text-xs text-slate-600">{profileValue(user.email)}</p>
             </div>
+            <button
+              onClick={() => logout({ logoutParams: { returnTo: window.location.origin } })}
+              className="ml-2 inline-flex rounded-md border border-[var(--border)] bg-white px-3 py-1.5 text-sm font-medium text-slate-700 hover:bg-slate-50"
+            >
+              Logout
+            </button>
           </div>
-          <button
-            onClick={() => logout({ logoutParams: { returnTo: window.location.origin } })}
-            className="inline-flex rounded-md border border-[var(--border)] bg-white px-3 py-1.5 text-sm font-medium text-slate-700 hover:bg-slate-50"
-          >
-            Logout
-          </button>
-        </div>
-      </div>
+        </header>
 
-      {/* Upload section */}
-      <div className="rounded-xl border border-[var(--border)] bg-white p-8 shadow-sm">
-        <div className="mb-6 flex items-center justify-between">
-          <div>
-            <h2 className="text-xl font-semibold tracking-tight text-slate-900">Analyze Medical Bills</h2>
-            <p className="mt-1 text-sm text-slate-600">
-              Upload your medical bill and EOB to detect billing issues and get dispute recommendations.
+        <section className="rounded-xl border border-[var(--border)] bg-white p-6">
+          <div className="mb-5">
+            <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Section 1</p>
+            <h2 className="mt-1 text-lg font-semibold text-slate-900">Summary Metrics</h2>
+          </div>
+          <div className="grid gap-4 lg:grid-cols-[1.5fr_1fr_1fr_1fr]">
+            <MetricCard
+              title="Total Savings Identified"
+              value={formatCurrency(totalSavings)}
+              subtitle={recentItems.length > 0 ? "Across recent analyses" : "Run an analysis to populate this"}
+              emphasis
+            />
+            <MetricCard
+              title="Issues Found"
+              value={String(totalIssues)}
+              subtitle={recentItems.length > 0 ? "Across recent analyses" : "No issues detected yet"}
+            />
+            <MetricCard
+              title="Cases Reviewed"
+              value={String(recentItems.length)}
+              subtitle="Stored in your local workspace history"
+            />
+            <MetricCard
+              title="Open Actions"
+              value={String(openActions)}
+              subtitle={latestAnalysis ? `Last analysis: ${formatDateTime(latestAnalysis.analyzedAt)}` : "No recent analyses"}
+            />
+          </div>
+        </section>
+
+        <section className="rounded-xl border border-[var(--border)] bg-white p-6">
+          <div className="flex flex-wrap items-end justify-between gap-4">
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Section 2</p>
+              <h2 className="mt-1 text-lg font-semibold text-slate-900">Start New Analysis</h2>
+              <p className="mt-2 max-w-2xl text-sm text-slate-600">
+                Start a focused document review workflow for a medical bill and EOB, then receive issue findings and next-step actions.
+              </p>
+            </div>
+            <Link
+              href="/analysis/new"
+              className="inline-flex rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700"
+            >
+              Start New Analysis
+            </Link>
+          </div>
+        </section>
+
+        <section className="rounded-xl border border-[var(--border)] bg-white p-6">
+          <div className="mb-5">
+            <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Section 3</p>
+            <h2 className="mt-1 text-lg font-semibold text-slate-900">Savings Visualization</h2>
+            <p className="mt-2 text-sm text-slate-600">
+              Value view for the currently selected recent case.
             </p>
           </div>
-          {analysisResult && (
-            <button
-              onClick={() => {
-                setAnalysisResult(null)
-                setError("")
-              }}
+
+          {selectedAnalysis ? (
+            <div className="space-y-4">
+              {bars.map((bar) => {
+                const value = bar.value ?? 0
+                const widthPct = Math.max(6, (value / chartMax) * 100)
+                return (
+                  <div key={bar.label} className="space-y-1.5">
+                    <div className="flex items-center justify-between gap-3">
+                      <p className="text-sm font-medium text-slate-800">{bar.label}</p>
+                      <p className="text-sm font-semibold text-slate-900">{formatCurrency(bar.value)}</p>
+                    </div>
+                    <div className="h-3 rounded-full bg-slate-100">
+                      <div className={`h-3 rounded-full ${bar.className}`} style={{ width: `${widthPct}%` }} />
+                    </div>
+                  </div>
+                )
+              })}
+              <p className="text-xs text-slate-500">
+                Based on billed amount, insurer-paid amount, and estimated patient responsibility.
+              </p>
+            </div>
+          ) : (
+            <div className="rounded-lg border border-dashed border-slate-300 bg-slate-50 px-4 py-8 text-center">
+              <p className="text-sm text-slate-700">Run your first analysis to view charge comparison and savings.</p>
+            </div>
+          )}
+        </section>
+
+        <section className="rounded-xl border border-[var(--border)] bg-white p-6">
+          <div className="mb-5 flex flex-wrap items-end justify-between gap-3">
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Section 4</p>
+              <h2 className="mt-1 text-lg font-semibold text-slate-900">Recent Analyses</h2>
+              <p className="mt-2 text-sm text-slate-600">
+                Recent case snapshots from your current workspace history.
+              </p>
+            </div>
+            <Link
+              href="/analysis/new"
               className="inline-flex rounded-md border border-[var(--border)] bg-white px-3 py-1.5 text-sm font-medium text-slate-700 hover:bg-slate-50"
             >
-              New Analysis
-            </button>
-          )}
-        </div>
-
-        {/* Error banner */}
-        {error && (
-          <div className="mb-4 flex items-start gap-3 rounded-lg border border-red-200 bg-red-50 px-4 py-3">
-            <svg className="mt-0.5 h-5 w-5 shrink-0 text-red-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-            </svg>
-            <div className="flex-1">
-              <p className="text-sm text-red-700">{error}</p>
-            </div>
-            <button
-              onClick={() => setError("")}
-              className="shrink-0 text-red-400 hover:text-red-600"
-            >
-              <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-              </svg>
-            </button>
+              Open Analysis Workspace
+            </Link>
           </div>
-        )}
 
-        {/* Upload zone (hidden when results are showing) */}
-        {!analysisResult && (
-          <MultiUploadZone onResult={setAnalysisResult} onError={setError} />
-        )}
+          {recentItems.length > 0 ? (
+            <div className="space-y-3">
+              {recentItems.map((item) => {
+                const isSelected = selectedAnalysis?.caseId === item.caseId
+                const issueCount = item.detectedIssues.length
+                const status = issueCount > 0 ? "Action recommended" : "No issues"
+                const provider = item.extractedFields.provider ?? "Unknown provider"
+                const billed = item.extractedFields.billedAmount
+                const savings = getPotentialSavings(item)
+                return (
+                  <button
+                    key={item.caseId}
+                    type="button"
+                    onClick={() => setSelectedCaseId(item.caseId)}
+                    className={`w-full rounded-lg border p-4 text-left transition-colors ${
+                      isSelected ? "border-blue-300 bg-blue-50/40" : "border-[var(--border)] bg-white hover:bg-slate-50"
+                    }`}
+                  >
+                    <div className="flex flex-wrap items-start justify-between gap-3">
+                      <div className="space-y-1">
+                        <p className="text-sm font-semibold text-slate-900">{provider}</p>
+                        <p className="text-xs text-slate-600">{formatDateTime(item.analyzedAt)}</p>
+                      </div>
+                      <span className="rounded-full border border-slate-200 bg-slate-50 px-2.5 py-1 text-xs font-medium text-slate-700">
+                        {status}
+                      </span>
+                    </div>
+                    <div className="mt-3 grid gap-2 text-sm text-slate-700 sm:grid-cols-2 lg:grid-cols-4">
+                      <p><span className="font-medium text-slate-900">Billed:</span> {formatCurrency(billed)}</p>
+                      <p><span className="font-medium text-slate-900">Savings:</span> {formatCurrency(savings)}</p>
+                      <p><span className="font-medium text-slate-900">Issues:</span> {issueCount}</p>
+                      <p><span className="font-medium text-slate-900">Next step:</span> {getRecommendedAction(item)}</p>
+                    </div>
+                  </button>
+                )
+              })}
+            </div>
+          ) : (
+            <div className="rounded-lg border border-dashed border-slate-300 bg-slate-50 px-4 py-8 text-center">
+              <p className="text-sm text-slate-700">No prior analyses yet. Your recent cases will appear here.</p>
+            </div>
+          )}
+        </section>
       </div>
-
-      {/* Analysis results */}
-      {analysisResult && (
-        <AnalysisResultDisplay result={analysisResult} />
-      )}
     </section>
+  )
+}
+
+function MetricCard({
+  title,
+  value,
+  subtitle,
+  emphasis = false,
+}: {
+  title: string
+  value: string
+  subtitle: string
+  emphasis?: boolean
+}) {
+  return (
+    <div className={`rounded-lg border border-[var(--border)] bg-white p-4 ${emphasis ? "lg:p-5" : ""}`}>
+      <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">{title}</p>
+      <p className={`mt-2 font-semibold tracking-tight text-slate-900 ${emphasis ? "text-4xl" : "text-2xl"}`}>{value}</p>
+      <p className="mt-2 text-xs text-slate-600">{subtitle}</p>
+    </div>
   )
 }

@@ -21,30 +21,30 @@ export default function Home() {
   const { user, loginWithRedirect, isLoading } = useAuth0()
 
   return (
-    <section className="mx-auto w-full max-w-5xl px-4 py-14 sm:px-6 sm:py-16">
-      <div className="rounded-2xl border border-[var(--border)] bg-white p-8 shadow-sm sm:p-10">
+    <section className="mx-auto w-full max-w-6xl px-4 py-10 sm:px-6 lg:px-8">
+      <div className="rounded-xl border border-[var(--border)] bg-white p-8 sm:p-10">
         <p className="mb-4 inline-flex rounded-md border border-slate-200 bg-slate-50 px-3 py-1 text-xs font-semibold uppercase tracking-wide text-slate-600">
           Redline
         </p>
-        <h1 className="max-w-3xl text-3xl font-semibold tracking-tight text-slate-900 sm:text-4xl">
-          Audit medical bills against EOBs and move straight to dispute-ready next steps.
+        <h1 className="max-w-3xl text-3xl font-semibold tracking-tight text-slate-900 sm:text-[2.1rem]">
+          Audit medical bills against EOBs in one clear workflow.
         </h1>
         <p className="mt-4 max-w-2xl text-base leading-7 text-slate-600">
-          Redline surfaces billing mismatches, denial risk, and patient responsibility errors in one focused workflow.
+          Redline surfaces billing mismatches, denial risk, and patient responsibility errors so teams can act faster.
         </p>
 
         <div className="mt-8 flex flex-wrap items-center gap-3">
           {!isLoading && user ? (
             <Link
               href="/dashboard"
-              className="rounded-md bg-slate-900 px-5 py-2.5 text-sm font-medium text-white shadow-sm hover:bg-slate-800"
+              className="rounded-md bg-blue-600 px-5 py-2.5 text-sm font-medium text-white hover:bg-blue-700"
             >
               Open workspace
             </Link>
           ) : !isLoading ? (
             <button
               onClick={() => loginWithRedirect()}
-              className="rounded-md bg-slate-900 px-5 py-2.5 text-sm font-medium text-white shadow-sm hover:bg-slate-800"
+              className="rounded-md bg-blue-600 px-5 py-2.5 text-sm font-medium text-white hover:bg-blue-700"
             >
               Log in to get started
             </button>
@@ -57,7 +57,7 @@ export default function Home() {
 
       <div className="mt-8 grid gap-4 md:grid-cols-3">
         {steps.map((step, idx) => (
-          <article key={step.title} className="rounded-xl border border-[var(--border)] bg-white p-5">
+          <article key={step.title} className="rounded-lg border border-[var(--border)] bg-white p-5">
             <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Step {idx + 1}</p>
             <h2 className="mt-2 text-base font-semibold text-slate-900">{step.title}</h2>
             <p className="mt-2 text-sm leading-6 text-slate-600">{step.description}</p>
@@ -65,7 +65,7 @@ export default function Home() {
         ))}
       </div>
 
-      <div className="mt-8 rounded-xl border border-[var(--border)] bg-slate-50 px-5 py-4">
+      <div className="mt-8 rounded-lg border border-[var(--border)] bg-slate-50 px-5 py-4">
         <p className="text-sm text-slate-700">
           Uses secure Auth0 sign-in and keeps the workflow focused: detect issue, explain impact, take action.
         </p>
