@@ -21,7 +21,9 @@ export function buildLegalPrompts({
   const issueLC = issue.toLowerCase();
 
   const flags = {
-    isSurpriseBilling: /surprise.bill|out.of.network|balance.bill/.test(issueLC),
+    isSurpriseBilling: /surprise.bill|out.of.network|balance.bill/.test(
+      issueLC,
+    ),
     isEmergency: /emergency|er|emtala|urgent/.test(issueLC),
     isDenial: /deni|refused|not covered|rejected/.test(issueLC),
     isOvercharge: /overcharg|upcod|inflat|duplicate|excess/.test(issueLC),
@@ -109,11 +111,11 @@ AGAIN, NO MORE THAN 4 SENTENCES PER SECTION.
 
   const lineItemText = lineItems.length
     ? `\nDisputed Line Items:\n${lineItems
-      .map(
-        (item, i) =>
-          `${i + 1}. CPT: ${item.code} | Service: ${item.description} | Billed: $${item.amount}`,
-      )
-      .join("\n")}`
+        .map(
+          (item, i) =>
+            `${i + 1}. CPT: ${item.code} | Service: ${item.description} | Billed: $${item.amount}`,
+        )
+        .join("\n")}`
     : "\nNo specific line items provided — research general protections for this issue type.";
 
   const userMessage = `
@@ -137,7 +139,8 @@ export async function researchMedicalBillingLaw(
   const { systemPrompt, userMessage } = buildLegalPrompts(params);
   const { state } = params;
 
-  const response = await fetch(
+  // FIX 1: `let` instead of `const` — response, data, and content are reassigned below
+  let response = await fetch(
     "https://api.lava.so/v1/forward?u=https%3A%2F%2Fapi.perplexity.ai%2Fchat%2Fcompletions",
     {
       method: "POST",
@@ -168,8 +171,37 @@ export async function researchMedicalBillingLaw(
     throw new Error(`Perplexity API error (${response.status}): ${errorText}`);
   }
 
-  const data = await response.json();
-  const content = data.choices?.[0]?.message?.content;
-  if (!content) throw new Error("No content returned from legal research agent");
+  let data = await response.json();
+  let content: string = data.choices?.[0]?.message?.content;
+  if (!content)
+    throw new Error("No content returned from legal research agent");
+
+  response = await fetch(
+    "https://api.lava.so/v1/forward?u=https%3A%2F%2Fapi.openai.com%2Fv1%2Fchat%2Fcompletions",
+    {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${process.env.LAVA_FORWARD_TOKEN}`,
+      },
+      body: JSON.stringify({
+        model: "gpt-5.4",
+        messages: [
+          {
+            // FIX 2: `"summarizer"` is not a valid OpenAI role — changed to `"system"`
+            role: "system",
+            content:
+              "You are to summarize this legal information. Omit any instructions being repeated. This is output from perlexity sonar. Each legal item section should be only 4 sentences max. I should only see a list of legal clauses/documents that help my case, and 3-4 sentence description of how it helps." +
+              content,
+          },
+        ],
+      }),
+    },
+  );
+
+  data = await response.json();
+  content = data.choices?.[0]?.message?.content;
+  if (!content)
+    throw new Error("No content returned from legal research agent");
   return content;
 }
