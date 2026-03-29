@@ -17,7 +17,7 @@ export function AppHeader() {
           href="/"
           className="text-[30px] font-semibold tracking-[-0.02em] text-slate-900 transition-opacity hover:opacity-75"
         >
-          NIPS
+          Veritas
         </Link>
 
         <nav className="flex items-center gap-2 sm:gap-3">

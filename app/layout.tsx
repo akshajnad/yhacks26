@@ -1,15 +1,18 @@
-import type { Metadata } from "next"
-import { AppHeader } from "@/components/AppHeader"
-import { Auth0ProviderWrapper } from "@/components/Auth0ProviderWrapper"
-import { ChatOverlay } from "@/components/ChatOverlay"
-import "./globals.css"
+import type { Metadata } from "next";
+import { AppHeader } from "@/components/AppHeader";
+import { Auth0ProviderWrapper } from "@/components/Auth0ProviderWrapper";
+import { ChatOverlay } from "@/components/ChatOverlay";
+import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "NIPS",
-  description: "Healthcare billing audit workspace for bill/EOB review and dispute readiness.",
-}
+  title: "Veritas",
+  description:
+    "Healthcare billing audit workspace for bill/EOB review and dispute readiness.",
+};
 
-export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
+export default function RootLayout({
+  children,
+}: Readonly<{ children: React.ReactNode }>) {
   return (
     <html lang="en" className="h-full antialiased">
       <body className="flex min-h-full flex-col">
@@ -19,12 +22,12 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
           <main className="flex-1">{children}</main>
 
           <footer className="border-t border-[var(--border)] bg-white py-4 text-center text-xs text-slate-500">
-            NIPS demo workspace
+            Veritas demo workspace
           </footer>
 
           <ChatOverlay />
         </Auth0ProviderWrapper>
       </body>
     </html>
-  )
+  );
 }

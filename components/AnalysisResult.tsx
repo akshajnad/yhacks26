@@ -350,7 +350,11 @@ export function AnalysisResultDisplay({
                 Open a prefilled dispute email draft in a dedicated composer
                 page, then edit and send with Gmail.
               </p>
-              <Button asChild className="mt-3 w-full" onClick={() => setActionTaken(true)}>
+              <Button
+                asChild
+                className="mt-3 w-full"
+                onClick={() => setActionTaken(true)}
+              >
                 <Link
                   href={`/action/email?caseId=${encodeURIComponent(caseId)}`}
                   target="_blank"
@@ -365,7 +369,8 @@ export function AnalysisResultDisplay({
                 Call Providers
               </p>
               <p className="mt-2 text-sm leading-6 text-slate-600">
-                Review your personalized call script and instantly dispatch an automated dispute call via ElevenLabs.
+                Review your personalized call script and instantly dispatch an
+                automated dispute call via ElevenLabs.
               </p>
               <Button
                 asChild
@@ -488,14 +493,29 @@ export function AnalysisResultDisplay({
       {actionTaken && (
         <div className="flex items-start gap-3 rounded-lg border border-blue-200 bg-blue-50 px-4 py-4 shadow-sm animate-in slide-in-from-bottom-2 duration-500">
           <div className="mt-0.5 rounded-full bg-blue-100 p-1">
-            <svg className="h-4 w-4 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+            <svg
+              className="h-4 w-4 text-blue-600"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"
+              />
             </svg>
           </div>
           <div>
-            <h4 className="text-sm font-semibold text-blue-900">Follow-up Scheduled</h4>
+            <h4 className="text-sm font-semibold text-blue-900">
+              Follow-up Scheduled
+            </h4>
             <p className="mt-1 text-sm text-blue-700 leading-relaxed">
-              Outreach initiated. Our NIPS agent has successfully scheduled an automated follow-up in <span className="font-bold underline">7 days</span> to check for updates on your dispute.
+              Outreach initiated. Our agent has successfully scheduled an
+              automated follow-up in{" "}
+              <span className="font-bold underline">7 days</span> to check for
+              updates on your dispute.
             </p>
           </div>
         </div>
