@@ -228,7 +228,7 @@ IMPORTANT:
 - Monetary values must be numbers without dollar signs or commas
 - Be thorough: detect ALL issues you can find, not just the most obvious one
 - Provide specific, actionable recommendations
-- laws MUST contain exactly 3 items relevant to the detected billing issues. Each has a "title" (statute name/citation) and "description" (one sentence). Make sure your laws apply to New Haven, Connecticut laws (include both Connecticut state statutes and applicable federal laws). NO LAWS THAT DON'T APPLY IN CONNECTICUT.`
+- laws MUST contain exactly 3 items relevant to the detected billing issues. Each has a "title" (statute name/citation) and "description" (one sentence). If documents mention a specific US state, include state-specific laws; otherwise default to New Haven, Connecticut laws (include both Connecticut state statutes and applicable federal laws).`
 
 const MULTI_DOC_SYSTEM_PROMPT = `You are an expert medical billing advocate with deep knowledge of:
 - CPT/ICD coding standards and common upcoding patterns
