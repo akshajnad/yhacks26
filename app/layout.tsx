@@ -5,7 +5,7 @@ import { ChatOverlay } from "@/components/ChatOverlay"
 import "./globals.css"
 
 export const metadata: Metadata = {
-  title: "Redline",
+  title: "NIPS",
   description: "Healthcare billing audit workspace for bill/EOB review and dispute readiness.",
 }
 
