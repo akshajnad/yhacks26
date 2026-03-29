@@ -6,6 +6,7 @@ import { useCallback, useState } from "react"
 import { MultiUploadZone } from "@/components/MultiUploadZone"
 import { AnalysisResultDisplay } from "@/components/AnalysisResult"
 import type { AnalysisResult } from "@/types/analysis"
+import { supabase } from "@/lib/supabase"
 
 const RECENT_ANALYSES_STORAGE_KEY = "redline.recent-analyses.v1"
 const MAX_RECENT_ANALYSES = 5
@@ -40,10 +41,49 @@ function writeRecentAnalyses(items: AnalysisResult[]) {
   }
 }
 
-function persistRecentAnalysis(result: AnalysisResult) {
-  const prev = readRecentAnalyses()
-  const deduped = prev.filter((item) => item.caseId !== result.caseId)
-  writeRecentAnalyses([result, ...deduped])
+async function persistRecentAnalysis(result: AnalysisResult, userId?: string) {
+  // 1. Maintain local cache for immediate feedback
+  const prevLocal = readRecentAnalyses()
+  const dedupedLocal = prevLocal.filter((item) => item.caseId !== result.caseId)
+  writeRecentAnalyses([result, ...dedupedLocal])
+
+  // 2. Persist to Supabase if userId is available
+  if (userId) {
+    try {
+      // Fetch existing cases
+      const { data, error: fetchError } = await supabase
+        .from('user_cases')
+        .select('cases')
+        .eq('user_id', userId)
+        .maybeSingle()
+
+      if (fetchError) {
+        console.error("Supabase fetch error:", fetchError)
+        return
+      }
+
+      let updatedCases: AnalysisResult[] = [result]
+
+      if (data?.cases) {
+        const existingCases = data.cases as AnalysisResult[]
+        const deduped = existingCases.filter(c => c.caseId !== result.caseId)
+        updatedCases = [result, ...deduped]
+      }
+
+      // Upsert back to Supabase
+      const { error: upsertError } = await supabase
+        .from('user_cases')
+        .upsert({
+          user_id: userId,
+          cases: updatedCases,
+          updated_at: new Date().toISOString()
+        })
+
+      if (upsertError) console.error("Supabase upsert error:", upsertError)
+    } catch (err) {
+      console.error("Failed to persist to Supabase:", err)
+    }
+  }
 }
 
 export default function NewAnalysisPage() {
@@ -54,8 +94,8 @@ export default function NewAnalysisPage() {
   const handleResult = useCallback((result: AnalysisResult) => {
     setAnalysisResult(result)
     setError("")
-    persistRecentAnalysis(result)
-  }, [])
+    persistRecentAnalysis(result, user?.sub)
+  }, [user?.sub])
 
   const handleReset = () => {
     setAnalysisResult(null)

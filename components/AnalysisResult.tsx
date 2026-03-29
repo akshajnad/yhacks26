@@ -13,6 +13,7 @@ import type {
 
 interface AnalysisResultProps {
   result: AnalysisResult;
+  progressive?: boolean;
 }
 
 const CATEGORY_LABELS: Record<ActionCategory, string> = {
@@ -119,7 +120,7 @@ function recommendedAction(result: AnalysisResult): string {
   return CATEGORY_LABELS[first.category];
 }
 
-export function AnalysisResultDisplay({ result }: AnalysisResultProps) {
+export function AnalysisResultDisplay({ result, progressive }: AnalysisResultProps) {
   const caseId = result.caseId ?? "unknown";
   const analyzedAt = result.analyzedAt ?? new Date().toISOString();
   const explanation = result.explanation ?? "No explanation provided.";

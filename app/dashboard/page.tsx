@@ -2,8 +2,10 @@
 
 import Link from "next/link"
 import { useAuth0 } from "@auth0/auth0-react"
-import { useMemo, useState } from "react"
+import { useMemo, useState, useEffect } from "react"
+import { useRouter } from "next/navigation"
 import type { ActionCategory, AnalysisResult } from "@/types/analysis"
+import { supabase } from "@/lib/supabase"
 const RECENT_ANALYSES_STORAGE_KEY = "redline.recent-analyses.v1"
 const MAX_RECENT_ANALYSES = 5
 
@@ -85,8 +87,43 @@ function getInitialRecentAnalyses(): AnalysisResult[] {
 
 export default function DashboardPage() {
   const { user, isLoading, loginWithRedirect, logout } = useAuth0()
-  const [recentAnalyses] = useState<AnalysisResult[]>(() => getInitialRecentAnalyses())
-  const [selectedCaseId, setSelectedCaseId] = useState<string | null>(() => getInitialRecentAnalyses()[0]?.caseId ?? null)
+  const router = useRouter()
+  const [recentAnalyses, setRecentAnalyses] = useState<AnalysisResult[]>(() => getInitialRecentAnalyses())
+  const [selectedCaseId, setSelectedCaseId] = useState<string | null>(null)
+  const [fetching, setFetching] = useState(false)
+
+  // Fetch from Supabase on load
+  useEffect(() => {
+    async function fetchHistory() {
+      if (!user?.sub) return
+
+      setFetching(true)
+      try {
+        const { data, error } = await supabase
+          .from('user_cases')
+          .select('cases')
+          .eq('user_id', user.sub)
+          .maybeSingle()
+
+        if (data?.cases) {
+          const remoteCases = data.cases as AnalysisResult[]
+          setRecentAnalyses(remoteCases)
+          // Set initial selection if not set
+          if (!selectedCaseId && remoteCases.length > 0) {
+            setSelectedCaseId(remoteCases[0].caseId)
+          }
+        }
+      } catch (err) {
+        console.error("Failed to fetch history from Supabase:", err)
+      } finally {
+        setFetching(false)
+      }
+    }
+
+    if (user) {
+      fetchHistory()
+    }
+  }, [user, user?.sub])
 
   const recentItems = useMemo(() => recentAnalyses.slice(0, MAX_RECENT_ANALYSES), [recentAnalyses])
 
@@ -323,10 +360,10 @@ export default function DashboardPage() {
                   <button
                     key={item.caseId}
                     type="button"
-                    onClick={() => setSelectedCaseId(item.caseId)}
-                    className={`w-full rounded-lg border p-4 text-left transition-colors ${
-                      isSelected ? "border-blue-300 bg-blue-50/40" : "border-[var(--border)] bg-white hover:bg-slate-50"
-                    }`}
+                    onClick={() => router.push(`/analysis/${item.caseId}`)}
+                    onMouseEnter={() => setSelectedCaseId(item.caseId)}
+                    className={`w-full rounded-lg border p-4 text-left transition-colors ${isSelected ? "border-blue-300 bg-blue-50/40" : "border-[var(--border)] bg-white hover:bg-slate-50"
+                      }`}
                   >
                     <div className="flex flex-wrap items-start justify-between gap-3">
                       <div className="space-y-1">
