@@ -43,7 +43,7 @@ export function ChatOverlay({
     {
       role: "assistant",
       content:
-        "Hello! I'm NIPS AI. How can I help you understand this medical bill today?",
+        "Hello! I'm Veritas AI. How can I help you understand this medical bill today?",
     },
   ]);
   const [input, setInput] = useState("");
