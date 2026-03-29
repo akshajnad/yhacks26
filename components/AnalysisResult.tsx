@@ -1,5 +1,12 @@
 "use client";
 
+import { useState } from "react"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Badge } from "@/components/ui/badge"
+import { Button } from "@/components/ui/button"
+import { Separator } from "@/components/ui/separator"
+import { ActionCenter } from "@/components/ActionCenter"
+import type { AnalysisResult, ActionCategory, IssueSeverity } from "@/types/analysis"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -355,6 +362,23 @@ export function AnalysisResultDisplay({ result, progressive }: AnalysisResultPro
         </CardContent>
       </Card>
 
+      {/* Take Action */}
+      {!showActionCenter ? (
+        <div className="rounded-lg border border-blue-200 bg-blue-50 p-4 text-center">
+          <p className="mb-3 text-sm text-blue-800">
+            Ready to dispute? Generate contact targets, email drafts, a call brief, and an ElevenLabs conversation config from this analysis.
+          </p>
+          <Button
+            onClick={() => setShowActionCenter(true)}
+            className="gap-2 bg-blue-600 text-white hover:bg-blue-700"
+          >
+            <LightningIcon />
+            Take Action
+          </Button>
+        </div>
+      ) : (
+        <ActionCenter analysis={result} onClose={() => setShowActionCenter(false)} />
+      )}
       {/* Section 4: Relevant Legal Protections */}
       {(result.laws ?? []).length > 0 && (
         <Card>

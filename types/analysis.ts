@@ -13,6 +13,15 @@ export interface ExtractedFields {
   serviceDate: string | null
   claimNumber: string | null
   memberID: string | null
+
+  // outreach-supporting metadata
+  patientName: string | null
+  patientAddress: string | null
+  accountNumber: string | null
+  billIssueDate: string | null
+  locationOfCare: string | null
+  providerAddress: string | null
+  insurerAddress: string | null
 }
 
 export type IssueSeverity = "warning" | "error"
@@ -41,7 +50,6 @@ export type ActionCategory =
 export interface RecommendedAction {
   category: ActionCategory
   action: string
-  // Future: agentType: "email" | "call" | "letter" | "portal"
 }
 
 export interface RelevantLaw {

@@ -26,6 +26,13 @@ const EMPTY_FIELDS: ExtractedFields = {
   serviceDate: null,
   claimNumber: null,
   memberID: null,
+  patientName: null,
+  patientAddress: null,
+  accountNumber: null,
+  billIssueDate: null,
+  locationOfCare: null,
+  providerAddress: null,
+  insurerAddress: null,
 }
 
 /**
@@ -46,6 +53,13 @@ function normalizeResponse(parsed: any): {
       ...EMPTY_FIELDS,
       ...ef,
       cptCodes: Array.isArray(ef.cptCodes) ? ef.cptCodes : [],
+      patientName: ef.patientName ?? null,
+      patientAddress: ef.patientAddress ?? null,
+      accountNumber: ef.accountNumber ?? null,
+      billIssueDate: ef.billIssueDate ?? null,
+      locationOfCare: ef.locationOfCare ?? null,
+      providerAddress: ef.providerAddress ?? null,
+      insurerAddress: ef.insurerAddress ?? null,
     },
     detectedIssues: Array.isArray(parsed.detectedIssues) ? parsed.detectedIssues : [],
     explanation: parsed.explanation ?? "No explanation provided.",
@@ -98,6 +112,13 @@ function getFallbackDemoAnalysis(): ReturnType<typeof normalizeResponse> {
       serviceDate: "02/10/2026",
       claimNumber: "CLM-992314",
       memberID: "BHX1234567",
+      patientName: null,
+      patientAddress: null,
+      accountNumber: "CLM-992314",
+      billIssueDate: null,
+      locationOfCare: "City General Hospital Emergency Department",
+      providerAddress: null,
+      insurerAddress: null,
     },
     detectedIssues: [
       {
@@ -201,7 +222,14 @@ You MUST return your analysis as a JSON object with EXACTLY these fields:
     "cptCodes": ["string"],           // Array of CPT/procedure codes found
     "serviceDate": string or null,    // Date of service
     "claimNumber": string or null,    // Claim or account number
-    "memberID": string or null        // Insurance member/subscriber ID
+    "memberID": string or null,       // Insurance member/subscriber ID
+    "patientName": string or null,    // Full name of the patient
+    "patientAddress": string or null, // Patient's mailing address
+    "accountNumber": string or null,  // Provider account/billing number (may differ from claim number)
+    "billIssueDate": string or null,  // Date the bill was issued
+    "locationOfCare": string or null, // Facility or department where care was provided
+    "providerAddress": string or null,// Provider's mailing address
+    "insurerAddress": string or null  // Insurer's mailing address for appeals
   },
   "detectedIssues": [
     {
