@@ -6,6 +6,10 @@ import { useMemo, useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import type { ActionCategory, AnalysisResult } from "@/types/analysis"
 import { supabase } from "@/lib/supabase"
+import { Button } from "@/components/ui/button"
+import { Spotlight } from "@/components/ui/spotlight"
+import { StackedPanels } from "@/components/ui/stacked-panels"
+import { SplineScene } from "@/components/ui/spline-scene"
 const RECENT_ANALYSES_STORAGE_KEY = "NIPS.recent-analyses.v1"
 const MAX_RECENT_ANALYSES = 5
 
@@ -212,6 +216,7 @@ export default function DashboardPage() {
 
   return (
     <section className="mx-auto w-full max-w-6xl px-4 py-10 sm:px-6 lg:px-8">
+      <Spotlight />
       <div className="space-y-10">
         <header className="flex flex-wrap items-start justify-between gap-4">
           <div>
@@ -244,6 +249,26 @@ export default function DashboardPage() {
             </button>
           </div>
         </header>
+
+        <section className="animate-fade-up relative overflow-hidden rounded-3xl border border-[var(--border)] bg-white p-6 sm:p-8">
+          <StackedPanels />
+          <div className="relative z-10 grid gap-6 lg:grid-cols-[1.2fr_1fr] lg:items-center">
+            <div className="space-y-4">
+              <p className="text-xs font-semibold uppercase tracking-[0.18em] text-blue-700">MedBill Agent</p>
+              <h2 className="text-3xl font-semibold tracking-tight text-slate-900 sm:text-4xl">
+                Catch hidden billing errors before they cost you more.
+              </h2>
+              <p className="max-w-xl text-sm leading-6 text-slate-600 sm:text-base">
+                Upload your bill and EOB, run the audit engine, and launch provider outreach from one workspace with
+                cleaner visuals and faster action paths.
+              </p>
+              <Button asChild size="lg" className="shadow-sm transition-transform duration-300 hover:scale-[1.03]">
+                <Link href="/analysis/new">Start New Analysis</Link>
+              </Button>
+            </div>
+            <SplineScene className="h-56 sm:h-64" />
+          </div>
+        </section>
 
         <section className="rounded-xl border border-[var(--border)] bg-white p-6">
           <div className="mb-5">
