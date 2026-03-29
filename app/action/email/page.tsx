@@ -292,7 +292,7 @@ export default function EmailComposerPage() {
                     Dispute email dispatched. Our agent has scheduled an
                     automated follow-up in{" "}
                     <span className="font-bold underline">7 days</span> to check
-                    for a response and Veritasfy if further action is required.
+                    for a response and verify if further action is required.
                   </p>
                 </div>
               </div>

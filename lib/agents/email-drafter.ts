@@ -57,7 +57,7 @@ ${issues}
 REQUESTED RESOLUTION:
 - ${resolution}
 
-${hasCitations ? `APPLICABLE REGULATIONS:\n${citations}` : "Note: No pre-Veritasfied legal citations are available. Keep tone firm but do not make aggressive legal threats."}
+${hasCitations ? `APPLICABLE REGULATIONS:\n${citations}` : "Note: No pre-verified legal citations are available. Keep tone firm but do not make aggressive legal threats."}
 
 BILLED AMOUNT: ${formatCurrency(ef.billedAmount)}
 INSURER PAID: ${formatCurrency(ef.insurerPaid)}
@@ -121,7 +121,7 @@ ${issues}
 REQUESTED RESOLUTION:
 - ${resolution}
 
-${hasCitations ? `APPLICABLE REGULATIONS:\n${citations}` : "Note: No pre-Veritasfied legal citations are available. Keep tone firm but do not make aggressive legal threats."}
+${hasCitations ? `APPLICABLE REGULATIONS:\n${citations}` : "Note: No pre-verified legal citations are available. Keep tone firm but do not make aggressive legal threats."}
 
 INSURER PAID: ${formatCurrency(ef.insurerPaid)}
 PATIENT RESPONSIBILITY PER EOB: ${formatCurrency(ef.patientResponsibility)}

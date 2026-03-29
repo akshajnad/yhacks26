@@ -71,7 +71,7 @@ function resolveContactTargets(analysis: AnalysisResult): ContactTarget[] {
       source: analysis.extractedFields.insurer ? "extracted" : "needs_review",
       notes: issueTypes.has("DENIAL_FLAG")
         ? "File a formal appeal with the appeals department."
-        : "Contact to Veritasfy EOB accuracy and request claim review.",
+        : "Contact to verify EOB accuracy and request claim review.",
     })
   }
 
@@ -153,14 +153,14 @@ function detectMissingFields(
 // ── Tone guidance ─────────────────────────────────────────────────────────────
 
 function buildToneGuidance(analysis: AnalysisResult): OutreachToneGuidance {
-  const hasHighSeVeritasty = analysis.detectedIssues.some((i) => i.seVeritasty === "error")
+  const hasHighSeverity = analysis.detectedIssues.some((i) => i.severity === "error")
   const hasNSATrigger = analysis.detectedIssues.some(
     (i) => i.type === "NO_SURPRISES_ACT_TRIGGER" || i.type === "BALANCE_BILLING"
   )
 
   return {
     style: "firm_factual_non_speculative",
-    mentionLegalEscalation: hasHighSeVeritasty || hasNSATrigger,
+    mentionLegalEscalation: hasHighSeverity || hasNSATrigger,
     requireCitationGrounding: true,
   }
 }

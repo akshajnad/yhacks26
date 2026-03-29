@@ -29,7 +29,7 @@ export async function POST(req: NextRequest) {
     })
 
     if (!profileRes.ok) {
-      return NextResponse.json({ error: `Unable to Veritasfy Gmail account (${profileRes.status})` }, { status: 401 })
+      return NextResponse.json({ error: `Unable to verify Gmail account (${profileRes.status})` }, { status: 401 })
     }
 
     const profile = (await profileRes.json()) as { emailAddress?: string }

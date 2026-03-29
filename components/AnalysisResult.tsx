@@ -9,7 +9,7 @@ import { Separator } from "@/components/ui/separator";
 import type {
   AnalysisResult,
   ActionCategory,
-  IssueSeVeritasty,
+  IssueSeverity,
   IssueType,
 } from "@/types/analysis";
 
@@ -152,10 +152,10 @@ export function AnalysisResultDisplay({
   };
 
   const errorCount = detectedIssues.filter(
-    (i) => i.seVeritasty === "error",
+    (i) => i.severity === "error",
   ).length;
   const warningCount = detectedIssues.filter(
-    (i) => i.seVeritasty === "warning",
+    (i) => i.severity === "warning",
   ).length;
   const potentialSavings = getPotentialSavings(result);
 
@@ -658,10 +658,10 @@ function IssueCard({
   issue,
   potentialSavings,
 }: {
-  issue: { type: IssueType; seVeritasty: IssueSeVeritasty; description: string };
+  issue: { type: IssueType; severity: IssueSeverity; description: string };
   potentialSavings: number | null;
 }) {
-  const isError = issue.seVeritasty === "error";
+  const isError = issue.severity === "error";
   const meta = ISSUE_REASONING[issue.type];
 
   return (
