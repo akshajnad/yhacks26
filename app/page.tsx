@@ -428,12 +428,12 @@ const steps = [
   {
     num: "01",
     title: "Upload your bill",
-    detail: "Hospital bill and EOB. Veritas reads both.",
+    detail: "Hospital bill and EOB. Redline reads both.",
     Preview: UploadPreview,
   },
   {
     num: "02",
-    title: "Veritas audits every line",
+    title: "Redline audits every line",
     detail: "CPT codes, duplicates, denied claims — checked automatically.",
     Preview: AuditPreview,
   },
@@ -555,7 +555,7 @@ export default function Home() {
                 fontFamily: "sans-serif",
               }}
             >
-              64% of patients never challenge their medical bill. Veritas makes
+              64% of patients never challenge their medical bill. Redline makes
               disputing one take minutes instead of months.
             </p>
 
@@ -568,6 +568,7 @@ export default function Home() {
               }}
             >
               {ctaButton}
+
             </div>
           </div>
 
@@ -839,7 +840,7 @@ export default function Home() {
                 lineHeight: 1.65,
               }}
             >
-              Upload your bill. Veritas does the rest.
+              Upload your bill. Redline does the rest.
             </p>
           </div>
           <div style={{ flexShrink: 0 }}>
@@ -917,7 +918,7 @@ export default function Home() {
                 fontFamily: "sans-serif",
               }}
             >
-              Veritas · Medical Billing Audit
+              Redline · Medical Billing Audit
             </span>
           </div>
           <span

@@ -7,7 +7,7 @@ export async function POST(req: NextRequest) {
 
     const systemMessage = {
       role: "system",
-      content: `You are Veritas AI, a medical billing expert assistant.
+      content: `You are Redline AI, a medical billing expert assistant.
 You are helping the user understand their medical bill and insurance EOB.
 
 CONTEXT:

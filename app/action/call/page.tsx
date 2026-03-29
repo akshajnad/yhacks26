@@ -149,12 +149,14 @@ export default function CallPage() {
 
   const hasFetched = useRef(false);
 
+
   // 1. Fetch Outreach Plan
   useEffect(() => {
     if (!analysis || hasFetched.current) return;
     hasFetched.current = true;
 
     setStatusText("Analyzing case for outreach plan...");
+
 
     fetch("/api/outreach/plan", {
       method: "POST",
@@ -385,7 +387,6 @@ export default function CallPage() {
                 </p>
               </div>
             )}
-
             {/* Call Notifications */}
             {callError && (
               <div className="flex items-start gap-2 rounded-md border border-red-200 bg-red-50 px-4 py-3">

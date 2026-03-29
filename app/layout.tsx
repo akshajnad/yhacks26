@@ -5,7 +5,7 @@ import { ChatOverlay } from "@/components/ChatOverlay";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "Veritas",
+  title: "Redline",
   description:
     "Healthcare billing audit workspace for bill/EOB review and dispute readiness.",
 };
@@ -22,7 +22,7 @@ export default function RootLayout({
           <main className="flex-1">{children}</main>
 
           <footer className="border-t border-[var(--border)] bg-white py-4 text-center text-xs text-slate-500">
-            Veritas demo workspace
+            Redline demo workspace
           </footer>
 
           <ChatOverlay />

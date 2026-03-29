@@ -43,7 +43,7 @@ export function ChatOverlay({
     {
       role: "assistant",
       content:
-        "Hello! I'm Veritas AI. How can I help you understand this medical bill today?",
+        "Hello! I'm Redline AI. How can I help you understand this medical bill today?",
     },
   ]);
   const [input, setInput] = useState("");
@@ -128,7 +128,7 @@ ${analysis.explanation}
             <div className="flex items-center gap-2">
               <div className="h-2 w-2 rounded-full bg-green-500 animate-pulse" />
               <span className="text-sm font-semibold tracking-tight">
-                Veritas AI Assistant
+                Redline AI Assistant
               </span>
             </div>
             <button
@@ -161,11 +161,10 @@ ${analysis.explanation}
                 className={`flex ${m.role === "user" ? "justify-end" : "justify-start"}`}
               >
                 <div
-                  className={`max-w-[85%] rounded-2xl px-4 py-2 text-sm shadow-sm ${
-                    m.role === "user"
+                  className={`max-w-[85%] rounded-2xl px-4 py-2 text-sm shadow-sm ${m.role === "user"
                       ? "bg-blue-600 text-white rounded-tr-none"
                       : "bg-white border border-[var(--border)] text-slate-800 rounded-tl-none"
-                  }`}
+                    }`}
                 >
                   {m.content}
                 </div>
@@ -226,9 +225,8 @@ ${analysis.explanation}
 
       <button
         onClick={() => setIsOpen(!isOpen)}
-        className={`flex h-14 w-14 items-center justify-center rounded-full bg-slate-900 text-white shadow-2xl transition-all hover:scale-110 active:scale-90 hover:bg-slate-800 focus:outline-none focus:ring-4 focus:ring-slate-400 group relative ${
-          isOpen ? "rotate-180" : ""
-        }`}
+        className={`flex h-14 w-14 items-center justify-center rounded-full bg-slate-900 text-white shadow-2xl transition-all hover:scale-110 active:scale-90 hover:bg-slate-800 focus:outline-none focus:ring-4 focus:ring-slate-400 group relative ${isOpen ? "rotate-180" : ""
+          }`}
         aria-label="Open Chat"
       >
         {isOpen ? (
@@ -269,7 +267,7 @@ ${analysis.explanation}
 
         {!isOpen && (
           <div className="absolute right-full mr-4 whitespace-nowrap rounded-lg bg-slate-900 px-3 py-1.5 text-xs font-medium text-white opacity-0 transition-opacity group-hover:opacity-100 hidden sm:block shadow-xl">
-            Ask Veritas AI
+            Ask Redline AI
           </div>
         )}
       </button>
