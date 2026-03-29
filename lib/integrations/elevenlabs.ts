@@ -19,6 +19,13 @@ import type { OutreachBrief, CallBriefResponse, ContactTarget, ElevenLabsCallPay
 
 const NOT_PROVIDED = "not provided"
 
+/** Trim and strip surrounding quotes from .env values (avoids subtle API/auth failures). */
+export function stripElevenLabsEnvValue(v: string | undefined): string | undefined {
+  if (v == null) return undefined
+  const t = v.trim().replace(/^["']|["']$/g, "")
+  return t === "" ? undefined : t
+}
+
 /** First non-empty trimmed string from analysis, patient context, and call-brief refs. */
 function firstNonEmpty(...vals: (string | null | undefined)[]): string | null {
   for (const v of vals) {
@@ -248,7 +255,7 @@ export function buildElevenLabsPayload(input: {
 }): ElevenLabsCallPayload {
   const { outreachBrief: brief, callBrief, target } = input
 
-  const hasCredentials = Boolean(process.env.ELEVENLABS_API_KEY)
+  const hasCredentials = Boolean(stripElevenLabsEnvValue(process.env.ELEVENLABS_API_KEY))
   const mode: ElevenLabsCallPayload["mode"] = hasCredentials ? "conversation_config" : "preview"
 
   const refs = mergeReferenceData(brief, callBrief)

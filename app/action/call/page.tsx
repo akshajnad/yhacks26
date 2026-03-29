@@ -306,7 +306,10 @@ export default function CallPage() {
       });
       const data = await res.json();
       if (!res.ok) {
-        throw new Error(data.error ?? "Call failed");
+        const msg = data.error ?? "Call failed";
+        const hint =
+          typeof data.hint === "string" && data.hint.trim() ? `\n\n${data.hint}` : "";
+        throw new Error(`${msg}${hint}`);
       }
       setCallSuccess({ toNumber: data.toNumber });
 

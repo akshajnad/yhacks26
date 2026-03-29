@@ -13,11 +13,75 @@
  */
 
 import { NextRequest, NextResponse } from "next/server"
-import { mergeDynamicVariablesForOutboundCall } from "@/lib/integrations/elevenlabs"
+import {
+  mergeDynamicVariablesForOutboundCall,
+  stripElevenLabsEnvValue,
+} from "@/lib/integrations/elevenlabs"
 import { extractConversationIdFromOutboundResponse } from "@/lib/integrations/elevenlabs-conversations"
 import type { ElevenLabsCallPayload } from "@/types/outreach"
 
 const ELEVENLABS_OUTBOUND_URL = "https://api.elevenlabs.io/v1/convai/twilio/outbound-call"
+
+function elevenLabsErrorPayload(
+  status: number,
+  responseData: unknown,
+  responseText: string
+): { error: string; detail?: unknown; hint?: string } {
+  const detail =
+    responseData &&
+    typeof responseData === "object" &&
+    "detail" in responseData
+      ? (responseData as { detail: unknown }).detail
+      : null
+
+  const code =
+    detail &&
+    typeof detail === "object" &&
+    detail !== null &&
+    "code" in detail
+      ? String((detail as { code: unknown }).code)
+      : ""
+
+  const msg =
+    detail &&
+    typeof detail === "object" &&
+    detail !== null &&
+    "message" in detail
+      ? String((detail as { message: unknown }).message)
+      : responseText.slice(0, 300)
+
+  if (status === 404 && (code === "document_not_found" || /not found/i.test(msg))) {
+    return {
+      error:
+        "ElevenLabs could not find this agent or phone resource for your API key (404).",
+      detail: responseData,
+      hint:
+        "Use an Agent ID and Phone number ID from the same ElevenLabs account as your API key (ConvAI → Agents → copy ID). Update ELEVENLABS_AGENT_ID, ELEVENLABS_AGENT_PHONE_NUMBER_ID, and ELEVENLABS_API_KEY in .env.local with no extra quotes or spaces, then restart `next dev` (env is read at server start).",
+    }
+  }
+
+  if (status === 401) {
+    return {
+      error: "ElevenLabs rejected the API key (401).",
+      detail: responseData,
+      hint: "Regenerate the xi-api key in ElevenLabs profile and set ELEVENLABS_API_KEY in .env.local, then restart the dev server.",
+    }
+  }
+
+  if (status === 422) {
+    return {
+      error: `ElevenLabs returned ${status}: ${msg}`,
+      detail: responseData,
+      hint:
+        "ELEVENLABS_AGENT_PHONE_NUMBER_ID must be the phnum_… ID from Phone Numbers in the same workspace as the agent (not the raw phone number).",
+    }
+  }
+
+  return {
+    error: `ElevenLabs returned ${status}${msg ? `: ${msg}` : ""}`,
+    detail: responseData,
+  }
+}
 
 function normalizeE164(raw: string): string | null {
   const digits = raw.replace(/\D/g, "")
@@ -28,9 +92,9 @@ function normalizeE164(raw: string): string | null {
 }
 
 export async function POST(req: NextRequest) {
-  const apiKey = process.env.ELEVENLABS_API_KEY
-  const agentId = process.env.ELEVENLABS_AGENT_ID
-  const phoneNumberId = process.env.ELEVENLABS_AGENT_PHONE_NUMBER_ID
+  const apiKey = stripElevenLabsEnvValue(process.env.ELEVENLABS_API_KEY)
+  const agentId = stripElevenLabsEnvValue(process.env.ELEVENLABS_AGENT_ID)
+  const phoneNumberId = stripElevenLabsEnvValue(process.env.ELEVENLABS_AGENT_PHONE_NUMBER_ID)
 
   if (!apiKey) {
     return NextResponse.json(
@@ -176,18 +240,8 @@ export async function POST(req: NextRequest) {
 
   if (!upstream.ok) {
     console.error("[/api/outreach/elevenlabs/call] ElevenLabs error:", upstream.status, responseText)
-    return NextResponse.json(
-      {
-        error: `ElevenLabs returned ${upstream.status}`,
-        detail: responseData,
-        hint: upstream.status === 422
-          ? "Check that ELEVENLABS_AGENT_PHONE_NUMBER_ID is a valid phnum_... ID (not a phone number)."
-          : upstream.status === 401
-          ? "Check that ELEVENLABS_API_KEY is correct."
-          : undefined,
-      },
-      { status: upstream.status }
-    )
+    const payload = elevenLabsErrorPayload(upstream.status, responseData, responseText)
+    return NextResponse.json(payload, { status: upstream.status })
   }
 
   console.log("[/api/outreach/elevenlabs/call] Call initiated successfully:", responseData)

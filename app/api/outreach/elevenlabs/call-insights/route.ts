@@ -12,6 +12,7 @@
 
 import { NextRequest, NextResponse } from "next/server"
 import { generateCallFollowUpGuidance } from "@/lib/agents/call-followup-guidance"
+import { stripElevenLabsEnvValue } from "@/lib/integrations/elevenlabs"
 import {
   type ConversationListItem,
   extractAnalysisSummary,
@@ -27,8 +28,8 @@ import {
 import type { AnalysisResult, ElevenLabsCallInsights } from "@/types/analysis"
 
 export async function POST(req: NextRequest) {
-  const apiKey = process.env.ELEVENLABS_API_KEY
-  const agentId = process.env.ELEVENLABS_AGENT_ID
+  const apiKey = stripElevenLabsEnvValue(process.env.ELEVENLABS_API_KEY)
+  const agentId = stripElevenLabsEnvValue(process.env.ELEVENLABS_AGENT_ID)
 
   if (!apiKey) {
     return NextResponse.json(
