@@ -1,17 +1,12 @@
 "use client";
 
-import { useState } from "react"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Badge } from "@/components/ui/badge"
-import { Button } from "@/components/ui/button"
-import { Separator } from "@/components/ui/separator"
-import { ActionCenter } from "@/components/ActionCenter"
-import type { AnalysisResult, ActionCategory, IssueSeverity } from "@/types/analysis"
+import { useState } from "react";
+import Link from "next/link";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
-import Link from "next/link";
+import { ActionCenter } from "@/components/ActionCenter";
 import type {
   AnalysisResult,
   ActionCategory,
@@ -128,7 +123,13 @@ function recommendedAction(result: AnalysisResult): string {
   return CATEGORY_LABELS[first.category];
 }
 
-export function AnalysisResultDisplay({ result, progressive }: AnalysisResultProps) {
+export function AnalysisResultDisplay({
+  result,
+  progressive,
+}: AnalysisResultProps) {
+  // Fix: declare the missing state that was used but never defined
+  const [showActionCenter, setShowActionCenter] = useState(false);
+
   const caseId = result.caseId ?? "unknown";
   const analyzedAt = result.analyzedAt ?? new Date().toISOString();
   const explanation = result.explanation ?? "No explanation provided.";
@@ -344,41 +345,60 @@ export function AnalysisResultDisplay({ result, progressive }: AnalysisResultPro
 
           <div className="grid gap-3 md:grid-cols-2">
             <div className="rounded-lg border border-[var(--border)] bg-white p-4">
-              <p className="text-sm font-semibold text-slate-900">Email Providers</p>
+              <p className="text-sm font-semibold text-slate-900">
+                Email Providers
+              </p>
               <p className="mt-2 text-sm leading-6 text-slate-600">
-                Open a prefilled dispute email draft in a dedicated composer page, then edit and send with Gmail.
+                Open a prefilled dispute email draft in a dedicated composer
+                page, then edit and send with Gmail.
               </p>
               <Button asChild className="mt-3 w-full">
-                <Link href={`/action/email?caseId=${encodeURIComponent(caseId)}`} target="_blank" rel="noreferrer">
+                <Link
+                  href={`/action/email?caseId=${encodeURIComponent(caseId)}`}
+                  target="_blank"
+                  rel="noreferrer"
+                >
                   Open Email Composer
                 </Link>
               </Button>
             </div>
-            <ActionStub
-              title="Call Providers"
-              description="Prepare and place guided provider calls based on detected issues."
-            />
+            <div className="rounded-lg border border-[var(--border)] bg-white p-4">
+              <p className="text-sm font-semibold text-slate-900">
+                Call Providers
+              </p>
+              <p className="mt-2 text-sm leading-6 text-slate-600">
+                Prepare and place guided provider calls based on detected
+                issues.
+              </p>
+              {!showActionCenter ? (
+                <Button
+                  onClick={() => setShowActionCenter(true)}
+                  className="mt-3 w-full gap-2 bg-blue-600 text-white hover:bg-blue-700"
+                >
+                  <LightningIcon />
+                  Take Action
+                </Button>
+              ) : (
+                <Button
+                  onClick={() => setShowActionCenter(false)}
+                  variant="outline"
+                  className="mt-3 w-full"
+                >
+                  Hide Action Center
+                </Button>
+              )}
+            </div>
           </div>
         </CardContent>
       </Card>
 
-      {/* Take Action */}
-      {!showActionCenter ? (
-        <div className="rounded-lg border border-blue-200 bg-blue-50 p-4 text-center">
-          <p className="mb-3 text-sm text-blue-800">
-            Ready to dispute? Generate contact targets, email drafts, a call brief, and an ElevenLabs conversation config from this analysis.
-          </p>
-          <Button
-            onClick={() => setShowActionCenter(true)}
-            className="gap-2 bg-blue-600 text-white hover:bg-blue-700"
-          >
-            <LightningIcon />
-            Take Action
-          </Button>
-        </div>
-      ) : (
-        <ActionCenter analysis={result} onClose={() => setShowActionCenter(false)} />
+      {showActionCenter && (
+        <ActionCenter
+          analysis={result}
+          onClose={() => setShowActionCenter(false)}
+        />
       )}
+
       {/* Section 4: Relevant Legal Protections */}
       {(result.laws ?? []).length > 0 && (
         <Card>
