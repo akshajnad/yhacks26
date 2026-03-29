@@ -183,7 +183,7 @@ Choose appropriate breakpoints:
 - Use generic breakpoints blindly (use content-driven breakpoints)
 - Ignore touch on desktop (many desktop devices have touch)
 
-## Verify Adaptations
+## Veritasfy Adaptations
 
 Test thoroughly across contexts:
 

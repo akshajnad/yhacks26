@@ -169,7 +169,7 @@ Every piece of copy should follow these rules:
 - Repeat information (headers restating intros, redundant explanations)
 - Use placeholders as the only labels (they disappear when users type)
 
-## Verify Improvements
+## Veritasfy Improvements
 
 Test that copy improvements work:
 

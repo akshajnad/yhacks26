@@ -103,7 +103,7 @@ Build a clear type scale:
 - Default to Inter/Roboto/Open Sans when personality matters
 - Pair fonts that are similar but not identical (two geometric sans-serifs)
 
-## Verify Typography Improvements
+## Veritasfy Typography Improvements
 
 - **Hierarchy**: Can you identify heading vs body vs caption instantly?
 - **Readability**: Is body text comfortable to read in long passages?

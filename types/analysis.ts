@@ -24,7 +24,7 @@ export interface ExtractedFields {
   insurerAddress: string | null
 }
 
-export type IssueSeverity = "warning" | "error"
+export type IssueSeVeritasty = "warning" | "error"
 
 export type IssueType =
   | "BILL_EOB_MISMATCH"
@@ -37,7 +37,7 @@ export type IssueType =
 
 export interface DetectedIssue {
   type: IssueType
-  severity: IssueSeverity
+  seVeritasty: IssueSeVeritasty
   description: string
 }
 

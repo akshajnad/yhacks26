@@ -112,7 +112,7 @@ Create a systematic plan:
 - Default to CSS Grid when Flexbox would be simpler — use the simplest tool for the job
 - Use arbitrary z-index values (999, 9999) — build a semantic scale
 
-## Verify Layout Improvements
+## Veritasfy Layout Improvements
 
 - **Squint test**: Can you identify primary, secondary, and groupings with blurred vision?
 - **Rhythm**: Does the page have a satisfying beat of tight and generous spacing?

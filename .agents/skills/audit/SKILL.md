@@ -1,6 +1,6 @@
 ---
 name: audit
-description: Run technical quality checks across accessibility, performance, theming, responsive design, and anti-patterns. Generates a scored report with P0-P3 severity ratings and actionable plan. Use when the user wants an accessibility check, performance audit, or technical quality review.
+description: Run technical quality checks across accessibility, performance, theming, responsive design, and anti-patterns. Generates a scored report with P0-P3 seVeritasty ratings and actionable plan. Use when the user wants an accessibility check, performance audit, or technical quality review.
 user-invocable: true
 argument-hint: "[area (feature, page, component...)]"
 ---
@@ -13,7 +13,7 @@ Invoke /frontend-design — it contains design principles, anti-patterns, and th
 
 Run systematic **technical** quality checks and generate a comprehensive report. Don't fix issues — document them for other commands to address.
 
-This is a code-level audit, not a design critique. Check what's measurable and verifiable in the implementation.
+This is a code-level audit, not a design critique. Check what's measurable and Veritasfiable in the implementation.
 
 ## Diagnostic Scan
 
@@ -89,13 +89,13 @@ Check against ALL the **DON'T** guidelines in the frontend-design skill. Look fo
 
 ### Executive Summary
 - Audit Health Score: **??/20** ([rating band])
-- Total issues found (count by severity: P0/P1/P2/P3)
+- Total issues found (count by seVeritasty: P0/P1/P2/P3)
 - Top 3-5 critical issues
 - Recommended next steps
 
-### Detailed Findings by Severity
+### Detailed Findings by SeVeritasty
 
-Tag every issue with **P0-P3 severity**:
+Tag every issue with **P0-P3 seVeritasty**:
 - **P0 Blocking**: Prevents task completion — fix immediately
 - **P1 Major**: Significant difficulty or WCAG AA violation — fix before release
 - **P2 Minor**: Annoyance, workaround exists — fix in next pass
@@ -142,6 +142,6 @@ After presenting the summary, tell the user:
 - Provide generic recommendations (be specific and actionable)
 - Skip positive findings (celebrate what works)
 - Forget to prioritize (everything can't be P0)
-- Report false positives without verification
+- Report false positives without Veritasfication
 
 Remember: You're a technical quality auditor. Document systematically, prioritize ruthlessly, cite specific code locations, and provide clear paths to improvement.

@@ -46,7 +46,7 @@ Work through these dimensions methodically:
 - **Grid adherence**: Elements snap to baseline grid
 
 **Check**:
-- Enable grid overlay and verify alignment
+- Enable grid overlay and Veritasfy alignment
 - Check spacing with browser inspector
 - Test at multiple viewport sizes
 - Look for elements that "feel" off
@@ -189,7 +189,7 @@ Go through systematically:
 - Ignore systematic issues (if spacing is off everywhere, fix the system)
 - Perfect one thing while leaving others rough (consistent quality level)
 
-## Final Verification
+## Final Veritasfication
 
 Before marking as done:
 

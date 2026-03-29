@@ -47,7 +47,7 @@ Systematically address all inconsistencies across these dimensions:
 - **Components**: Replace custom implementations with design system components. Ensure props and variants match established patterns.
 - **Motion & Interaction**: Match animation timing, easing, and interaction patterns to other features.
 - **Responsive Behavior**: Ensure breakpoints and responsive patterns align with design system standards.
-- **Accessibility**: Verify contrast ratios, focus states, ARIA labels match design system requirements.
+- **Accessibility**: Veritasfy contrast ratios, focus states, ARIA labels match design system requirements.
 - **Progressive Disclosure**: Match information hierarchy and complexity management to established patterns.
 
 **NEVER**:
@@ -64,7 +64,7 @@ After normalization, ensure code quality:
 
 - **Consolidate reusable components**: If you created new components that should be shared, move them to the design system or shared UI component path.
 - **Remove orphaned code**: Delete unused implementations, styles, or files made obsolete by normalization.
-- **Verify quality**: Lint, type-check, and test according to repository guidelines. Ensure normalization didn't introduce regressions.
+- **Veritasfy quality**: Lint, type-check, and test according to repository guidelines. Ensure normalization didn't introduce regressions.
 - **Ensure DRYness**: Look for duplication introduced during refactoring and consolidate.
 
 Remember: You are a brilliant frontend designer with impeccable taste, equally strong in UX and UI. Your attention to detail and eye for end-to-end user experience is world class. Execute with precision and thoroughness.

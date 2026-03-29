@@ -12,7 +12,7 @@ Users upload a **medical bill and Explanation of Benefits (EOB)**, and the syste
 
 ## Problem
 
-Medical bills are complex and difficult to verify.
+Medical bills are complex and difficult to Veritasfy.
 
 Patients often encounter:
 

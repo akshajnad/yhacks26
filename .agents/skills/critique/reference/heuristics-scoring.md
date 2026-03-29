@@ -220,7 +220,7 @@ Even if the system is usable without docs, help should be easy to find, task-foc
 
 ---
 
-## Issue Severity (P0–P3)
+## Issue SeVeritasty (P0–P3)
 
 Tag each individual issue found during scoring with a priority level:
 

@@ -251,7 +251,7 @@ const observer = new IntersectionObserver((entries) => {
 - Optimize micro-optimizations while ignoring major issues (optimize the biggest bottleneck first)
 - Forget about mobile performance (often slower devices, slower connections)
 
-## Verify Improvements
+## Veritasfy Improvements
 
 Test that optimizations worked:
 

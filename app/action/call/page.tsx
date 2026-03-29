@@ -442,7 +442,7 @@ export default function CallPage() {
                       Our agent has successfully reached out on your behalf. We
                       have scheduled an automated follow-up in{" "}
                       <span className="font-bold underline">7 days</span> to
-                      verify the status of your dispute if no resolution is
+                      Veritasfy the status of your dispute if no resolution is
                       detected.
                     </p>
                   </div>

@@ -66,12 +66,12 @@ function normalizeResponse(parsed: any): {
     recommendedActions: Array.isArray(parsed.recommendedActions) ? parsed.recommendedActions : [],
     laws: Array.isArray(parsed.laws)
       ? parsed.laws.slice(0, 3).map((law: unknown) => {
-          const l = (law ?? {}) as { title?: string; description?: string }
-          return {
-            title: l.title ?? "Unknown Law",
-            description: l.description ?? "",
-          }
-        })
+        const l = (law ?? {}) as { title?: string; description?: string }
+        return {
+          title: l.title ?? "Unknown Law",
+          description: l.description ?? "",
+        }
+      })
       : [],
   }
 }
@@ -123,31 +123,31 @@ function getFallbackDemoAnalysis(): ReturnType<typeof normalizeResponse> {
     detectedIssues: [
       {
         type: "DUPLICATE_CHARGE" as const,
-        severity: "error" as const,
+        seVeritasty: "error" as const,
         description: "Chest X-Ray (CPT 71046) appears to be billed twice on the medical bill — once as a standalone line item and once bundled into the ER visit charges. The EOB only shows one X-ray reimbursement.",
       },
       {
         type: "UPCODING" as const,
-        severity: "error" as const,
-        description: "The medical bill uses CPT 99285 (high-severity ER visit) but the EOB processed the visit as CPT 99283 (moderate-severity). This suggests the provider billed a higher complexity level than the insurer recognized, resulting in a $380 discrepancy.",
+        seVeritasty: "error" as const,
+        description: "The medical bill uses CPT 99285 (high-seVeritasty ER visit) but the EOB processed the visit as CPT 99283 (moderate-seVeritasty). This suggests the provider billed a higher complexity level than the insurer recognized, resulting in a $380 discrepancy.",
       },
       {
         type: "BALANCE_BILLING" as const,
-        severity: "warning" as const,
-        description: "Medication charge uses vague/unspecified code J3490 ('Unclassified drugs'). This generic code makes it difficult to verify the appropriateness of the $210 charge and may indicate balance billing for a drug that should be covered.",
+        seVeritasty: "warning" as const,
+        description: "Medication charge uses vague/unspecified code J3490 ('Unclassified drugs'). This generic code makes it difficult to Veritasfy the appropriateness of the $210 charge and may indicate balance billing for a drug that should be covered.",
       },
       {
         type: "BILL_EOB_MISMATCH" as const,
-        severity: "error" as const,
+        seVeritasty: "error" as const,
         description: "The medical bill shows patient responsibility of $1,030 but the EOB indicates the patient owes $685. The $345 difference suggests the provider is billing more than the insurer-determined patient share.",
       },
       {
         type: "OVERCHARGE" as const,
-        severity: "warning" as const,
+        seVeritasty: "warning" as const,
         description: "Total billed amount of $2,650 with insurer-allowed amount of approximately $2,100 suggests the provider may be attempting to balance-bill the patient for the $550 difference between billed and allowed charges.",
       },
     ],
-    explanation: "Analysis of your medical bill and EOB reveals several concerning discrepancies. The bill from City General Hospital contains a likely duplicate charge for a Chest X-Ray (CPT 71046), which appears both as a standalone line item and within the ER visit charges — but the EOB only reimburses one. The ER visit itself was billed at the highest severity level (CPT 99285) while the insurer processed it at a moderate level (CPT 99283), creating a $380 gap. A medication was billed under the vague J3490 code, making verification difficult. Most importantly, the bill claims you owe $1,030 while the EOB says your share should be $685 — a $345 overcharge. These issues together suggest potential overbilling that warrants dispute.",
+    explanation: "Analysis of your medical bill and EOB reveals several concerning discrepancies. The bill from City General Hospital contains a likely duplicate charge for a Chest X-Ray (CPT 71046), which appears both as a standalone line item and within the ER visit charges — but the EOB only reimburses one. The ER visit itself was billed at the highest seVeritasty level (CPT 99285) while the insurer processed it at a moderate level (CPT 99283), creating a $380 gap. A medication was billed under the vague J3490 code, making Veritasfication difficult. Most importantly, the bill claims you owe $1,030 while the EOB says your share should be $685 — a $345 overcharge. These issues together suggest potential overbilling that warrants dispute.",
     recommendedActions: [
       {
         category: "contact_provider" as const,
@@ -234,7 +234,7 @@ You MUST return your analysis as a JSON object with EXACTLY these fields:
   "detectedIssues": [
     {
       "type": "BILL_EOB_MISMATCH" | "OVERCHARGE" | "DENIAL_FLAG" | "NO_SURPRISES_ACT_TRIGGER" | "DUPLICATE_CHARGE" | "UPCODING" | "BALANCE_BILLING",
-      "severity": "warning" | "error",
+      "seVeritasty": "warning" | "error",
       "description": "Detailed explanation of the issue"
     }
   ],

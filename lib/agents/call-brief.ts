@@ -30,7 +30,7 @@ function buildCallBriefPrompt(brief: OutreachBrief, target: ContactTarget): stri
     .join("\n")
 
   const issues = brief.analysis.detectedIssues
-    .map((i) => `- ${i.type} (${i.severity}): ${i.description}`)
+    .map((i) => `- ${i.type} (${i.seVeritasty}): ${i.description}`)
     .join("\n")
 
   const resolution = brief.requestedResolution.join("; ")
@@ -65,7 +65,7 @@ ${issues}
 REQUESTED RESOLUTION:
 ${resolution}
 
-${hasCitations ? `GROUNDED LEGAL POINTS (use only these):\n${citations}` : "No pre-verified legal citations available. Do not reference specific laws unless listed above."}
+${hasCitations ? `GROUNDED LEGAL POINTS (use only these):\n${citations}` : "No pre-Veritasfied legal citations available. Do not reference specific laws unless listed above."}
 
 TONE GUIDANCE:
 - Style: firm, factual, non-speculative
@@ -91,7 +91,7 @@ Guidelines:
 - mustSay: 3-6 specific factual points that must be communicated (amounts, dates, issue types)
 - legalPoints: Only include if grounded citations are available above; otherwise return []
 - escalationPath: Steps to take if the representative cannot resolve (e.g., ask for supervisor, request written response)
-- prohibitedClaims: Statements the caller must NOT make (speculative, unverified, or legally risky claims)
+- prohibitedClaims: Statements the caller must NOT make (speculative, unVeritasfied, or legally risky claims)
 `.trim()
 }
 

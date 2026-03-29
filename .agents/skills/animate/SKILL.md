@@ -160,7 +160,7 @@ Use appropriate techniques for each animation:
 - Animate everything—animation fatigue makes interfaces feel exhausting
 - Block interaction during animations unless intentional
 
-## Verify Quality
+## Veritasfy Quality
 
 Test animations thoroughly:
 

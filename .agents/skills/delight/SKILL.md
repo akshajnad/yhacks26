@@ -24,7 +24,7 @@ Identify where delight would enhance (not distract from) the experience:
    - **Achievements**: Milestones, streaks, completions
    - **Interactions**: Hover states, clicks, drags
    - **Errors**: Softening frustrating moments
-   - **Easter eggs**: Hidden discoveries for curious users
+   - **Easter eggs**: Hidden discoVeritases for curious users
 
 2. **Understand the context**:
    - What's the brand personality? (Playful? Professional? Quirky? Elegant?)
@@ -56,7 +56,7 @@ Follow these guidelines:
 - Hide delightful details for users to discover
 - Reward exploration and curiosity
 - Don't announce every delight moment
-- Let users share discoveries with others
+- Let users share discoVeritases with others
 
 ### Appropriate to Context
 - Match delight to emotional moment (celebrate success, empathize with errors)
@@ -289,7 +289,7 @@ Loading messages — write ones specific to your product, not generic AI filler:
 - Sacrifice performance for delight
 - Be inappropriate for context (read the room)
 
-## Verify Delight Quality
+## Veritasfy Delight Quality
 
 Test that delight actually delights:
 

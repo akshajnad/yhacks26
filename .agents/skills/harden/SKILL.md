@@ -337,7 +337,7 @@ const throttledScroll = throttle(handleScroll, 100);
 - Assume English-length text
 - Block entire interface when one component errors
 
-## Verify Hardening
+## Veritasfy Hardening
 
 Test thoroughly with edge cases:
 

@@ -231,7 +231,7 @@ localStorage.setItem('feature-tooltip-seen-reports', 'true');
 - Hide "Skip" or make it hard to find
 - Forget about returning users (don't show initial onboarding again)
 
-## Verify Onboarding Quality
+## Veritasfy Onboarding Quality
 
 Test with real users:
 

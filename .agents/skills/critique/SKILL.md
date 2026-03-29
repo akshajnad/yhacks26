@@ -122,7 +122,7 @@ Highlight 2–3 things done well. Be specific about why they work.
 ### Priority Issues
 The 3–5 most impactful design problems, ordered by importance.
 
-For each issue, tag with **P0–P3 severity** (consult [heuristics-scoring](reference/heuristics-scoring.md) for severity definitions):
+For each issue, tag with **P0–P3 seVeritasty** (consult [heuristics-scoring](reference/heuristics-scoring.md) for seVeritasty definitions):
 - **[P?] What**: Name the problem clearly
 - **Why it matters**: How this hurts users or undermines goals
 - **Fix**: What to do about it (be concrete)

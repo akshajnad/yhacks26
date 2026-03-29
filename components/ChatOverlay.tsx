@@ -43,7 +43,7 @@ export function ChatOverlay({
     {
       role: "assistant",
       content:
-        "Hello! I'm Redline AI. How can I help you understand this medical bill today?",
+        "Hello! I'm Veritas AI. How can I help you understand this medical bill today?",
     },
   ]);
   const [input, setInput] = useState("");
@@ -128,7 +128,7 @@ ${analysis.explanation}
             <div className="flex items-center gap-2">
               <div className="h-2 w-2 rounded-full bg-green-500 animate-pulse" />
               <span className="text-sm font-semibold tracking-tight">
-                Redline AI Assistant
+                Veritas AI Assistant
               </span>
             </div>
             <button
@@ -162,8 +162,8 @@ ${analysis.explanation}
               >
                 <div
                   className={`max-w-[85%] rounded-2xl px-4 py-2 text-sm shadow-sm ${m.role === "user"
-                      ? "bg-blue-600 text-white rounded-tr-none"
-                      : "bg-white border border-[var(--border)] text-slate-800 rounded-tl-none"
+                    ? "bg-blue-600 text-white rounded-tr-none"
+                    : "bg-white border border-[var(--border)] text-slate-800 rounded-tl-none"
                     }`}
                 >
                   {m.content}
@@ -267,7 +267,7 @@ ${analysis.explanation}
 
         {!isOpen && (
           <div className="absolute right-full mr-4 whitespace-nowrap rounded-lg bg-slate-900 px-3 py-1.5 text-xs font-medium text-white opacity-0 transition-opacity group-hover:opacity-100 hidden sm:block shadow-xl">
-            Ask Redline AI
+            Ask Veritas AI
           </div>
         )}
       </button>

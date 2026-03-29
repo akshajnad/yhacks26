@@ -32,7 +32,7 @@ Skipping this step risks building something embarrassing that needs to be thrown
 
 ### Iterate with Browser Automation
 
-Technically ambitious effects almost never work on the first try. You MUST actively use browser automation tools to preview your work, visually verify the result, and iterate. Do not assume the effect looks right — check it. Expect multiple rounds of refinement. The gap between "technically works" and "looks extraordinary" is closed through visual iteration, not code alone.
+Technically ambitious effects almost never work on the first try. You MUST actively use browser automation tools to preview your work, visually Veritasfy the result, and iterate. Do not assume the effect looks right — check it. Expect multiple rounds of refinement. The gap between "technically works" and "looks extraordinary" is closed through visual iteration, not code alone.
 
 ---
 
@@ -130,7 +130,7 @@ The gap between "cool" and "extraordinary" is in the last 20% of refinement: the
 - Use technical ambition to mask weak design fundamentals — fix those first with other skills
 - Layer multiple competing extraordinary moments — focus creates impact, excess creates noise
 
-## Verify the Result
+## Veritasfy the Result
 
 - **The wow test**: Show it to someone who hasn't seen it. Do they react?
 - **The removal test**: Take it away. Does the experience feel diminished, or does nobody notice?

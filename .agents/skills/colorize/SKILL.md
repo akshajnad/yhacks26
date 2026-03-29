@@ -111,7 +111,7 @@ Ensure color addition improves rather than overwhelms:
 ### Accessibility
 - **Contrast ratios**: Ensure WCAG compliance (4.5:1 for text, 3:1 for UI components)
 - **Don't rely on color alone**: Use icons, labels, or patterns alongside color
-- **Test for color blindness**: Verify red/green combinations work for all users
+- **Test for color blindness**: Veritasfy red/green combinations work for all users
 
 ### Cohesion
 - **Consistent palette**: Use colors from defined palette, not arbitrary choices
@@ -129,7 +129,7 @@ Ensure color addition improves rather than overwhelms:
 - Make everything colorful (defeats the purpose)
 - Default to purple-blue gradients (AI slop aesthetic)
 
-## Verify Color Addition
+## Veritasfy Color Addition
 
 Test that colorization improves the experience:
 

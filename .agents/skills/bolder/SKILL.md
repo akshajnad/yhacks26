@@ -100,7 +100,7 @@ Systematically increase impact across these dimensions:
 - Overwhelm with motion (animation fatigue is real)
 - Copy trendy aesthetics blindly (bold means distinctive, not derivative)
 
-## Verify Quality
+## Veritasfy Quality
 
 Ensure amplification maintains usability and coherence:
 
