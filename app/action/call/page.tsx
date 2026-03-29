@@ -545,9 +545,14 @@ export default function CallPage() {
                 )}
                 {callInsights && (
                   <div className="space-y-3 rounded-lg border border-violet-200 bg-white px-4 py-4 shadow-sm">
-                    <p className="text-xs font-semibold uppercase tracking-wide text-violet-800">
-                      Call insights (saved to this case)
-                    </p>
+                    <div className="flex items-center justify-between">
+                      <p className="text-xs font-semibold uppercase tracking-wide text-violet-800">
+                        Call insights (saved to this case)
+                      </p>
+                      <span className="inline-flex items-center rounded-full bg-violet-100 px-2.5 py-0.5 text-[10px] font-medium text-violet-800">
+                        ✨ Summarization/reasoning by K2 think v2
+                      </span>
+                    </div>
                     {callInsights.callSummaryTitle && (
                       <p className="text-sm font-semibold text-slate-900">
                         {callInsights.callSummaryTitle}

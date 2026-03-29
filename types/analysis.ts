@@ -65,7 +65,7 @@ export interface ElevenLabsCallInsights {
   callSummaryTitle?: string | null
   /** Joined conversation transcript (agent/user turns) when available. */
   transcriptText?: string
-  /** GPT-generated next steps and strategy (markdown). */
+  /** K2-generated next steps and strategy (markdown). */
   nextStepsGuidance: string
   /** Financial / rights framing for the patient (not legal advice). */
   patientImpactSummary: string
