@@ -4,6 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
+import Link from "next/link";
 import type {
   AnalysisResult,
   ActionCategory,
@@ -13,6 +14,7 @@ import type {
 
 interface AnalysisResultProps {
   result: AnalysisResult;
+  progressive?: boolean;
 }
 
 const CATEGORY_LABELS: Record<ActionCategory, string> = {
@@ -333,18 +335,21 @@ export function AnalysisResultDisplay({ result }: AnalysisResultProps) {
             </ol>
           )}
 
-          <div className="grid gap-3 md:grid-cols-3">
+          <div className="grid gap-3 md:grid-cols-2">
+            <div className="rounded-lg border border-[var(--border)] bg-white p-4">
+              <p className="text-sm font-semibold text-slate-900">Email Providers</p>
+              <p className="mt-2 text-sm leading-6 text-slate-600">
+                Open a prefilled dispute email draft in a dedicated composer page, then edit and send with Gmail.
+              </p>
+              <Button asChild className="mt-3 w-full">
+                <Link href={`/action/email?caseId=${encodeURIComponent(caseId)}`} target="_blank" rel="noreferrer">
+                  Open Email Composer
+                </Link>
+              </Button>
+            </div>
             <ActionStub
-              title="Provider Dispute Email"
-              description="Draft a concise provider billing dispute with cited findings and requested corrections."
-            />
-            <ActionStub
-              title="Insurance Appeal Draft"
-              description="Prepare an appeal packet summary aligned with denial or responsibility mismatch findings."
-            />
-            <ActionStub
-              title="Billing Call Script"
-              description="Generate a call script with key points, questions, and escalation prompts."
+              title="Call Providers"
+              description="Prepare and place guided provider calls based on detected issues."
             />
           </div>
         </CardContent>
