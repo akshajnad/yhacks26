@@ -20,7 +20,7 @@ export function AppHeader() {
         >
           <span>Veritas</span>
         </Link>
-
+//hi
         <nav className="flex items-center gap-2 sm:gap-3">
           {!isLoading && user ? (
             <>
