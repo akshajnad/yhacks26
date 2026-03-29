@@ -479,6 +479,67 @@ export function AnalysisResultDisplay({
             </>
           )}
 
+          {result.elevenLabsCallInsights && (
+            <>
+              <Separator className="my-4" />
+              <div className="space-y-4 rounded-lg border border-violet-200 bg-violet-50/80 p-4">
+                <p className="text-xs font-semibold uppercase tracking-wide text-violet-800">
+                  Provider call — ElevenLabs summary &amp; next steps
+                </p>
+                {result.elevenLabsCallInsights.callSummaryTitle && (
+                  <p className="text-sm font-medium text-violet-950">
+                    {result.elevenLabsCallInsights.callSummaryTitle}
+                  </p>
+                )}
+                <div>
+                  <p className="text-xs font-medium text-violet-900/80">
+                    Transcript summary (from ElevenLabs)
+                  </p>
+                  <p className="mt-1 whitespace-pre-wrap text-sm leading-relaxed text-[var(--foreground)]">
+                    {result.elevenLabsCallInsights.transcriptSummary}
+                  </p>
+                </div>
+                {result.elevenLabsCallInsights.nextStepsGuidance && (
+                  <div>
+                    <p className="text-xs font-medium text-violet-900/80">
+                      Suggested next steps (K2 Think V2)
+                    </p>
+                    <p className="mt-1 whitespace-pre-wrap text-sm leading-relaxed text-[var(--foreground)]">
+                      {result.elevenLabsCallInsights.nextStepsGuidance}
+                    </p>
+                  </div>
+                )}
+                {result.elevenLabsCallInsights.patientImpactSummary && (
+                  <div>
+                    <p className="text-xs font-medium text-violet-900/80">
+                      Patient impact &amp; rights (general information)
+                    </p>
+                    <p className="mt-1 whitespace-pre-wrap text-sm leading-relaxed text-slate-700">
+                      {result.elevenLabsCallInsights.patientImpactSummary}
+                    </p>
+                  </div>
+                )}
+                {result.elevenLabsCallInsights.escalationNotes && (
+                  <div>
+                    <p className="text-xs font-medium text-violet-900/80">
+                      Escalation &amp; formal options
+                    </p>
+                    <p className="mt-1 whitespace-pre-wrap text-sm leading-relaxed text-slate-700">
+                      {result.elevenLabsCallInsights.escalationNotes}
+                    </p>
+                  </div>
+                )}
+                <p className="text-[10px] text-slate-500">
+                  Not legal advice. Confirmed conversation id:{" "}
+                  {result.elevenLabsCallInsights.conversationId} · fetched{" "}
+                  {new Date(
+                    result.elevenLabsCallInsights.fetchedAt,
+                  ).toLocaleString()}
+                </p>
+              </div>
+            </>
+          )}
+
           <Separator className="my-4" />
           <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
             Case explanation

@@ -14,6 +14,7 @@
 
 import { NextRequest, NextResponse } from "next/server"
 import { mergeDynamicVariablesForOutboundCall } from "@/lib/integrations/elevenlabs"
+import { extractConversationIdFromOutboundResponse } from "@/lib/integrations/elevenlabs-conversations"
 import type { ElevenLabsCallPayload } from "@/types/outreach"
 
 const ELEVENLABS_OUTBOUND_URL = "https://api.elevenlabs.io/v1/convai/twilio/outbound-call"
@@ -190,10 +191,12 @@ export async function POST(req: NextRequest) {
   }
 
   console.log("[/api/outreach/elevenlabs/call] Call initiated successfully:", responseData)
+  const conversationId = extractConversationIdFromOutboundResponse(responseData)
   return NextResponse.json({
     success: true,
     toNumber,
     agentId,
+    conversationId: conversationId ?? null,
     response: responseData,
   })
 }

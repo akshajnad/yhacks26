@@ -4,7 +4,7 @@
 import { useEffect, useMemo, useState, useCallback, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import type { AnalysisResult } from "@/types/analysis";
+import type { AnalysisResult, ElevenLabsCallInsights } from "@/types/analysis";
 import type {
   OutreachBrief,
   CallBriefResponse,
@@ -12,6 +12,27 @@ import type {
 } from "@/types/outreach";
 
 const RECENT_ANALYSES_STORAGE_KEY = "NIPS.recent-analyses.v1";
+
+function persistCallInsightsToStorage(
+  caseId: string,
+  insights: ElevenLabsCallInsights,
+) {
+  try {
+    const raw = localStorage.getItem(RECENT_ANALYSES_STORAGE_KEY);
+    if (!raw) return;
+    const arr = JSON.parse(raw) as AnalysisResult[];
+    const next = arr.map((a) =>
+      a.caseId === caseId ? { ...a, elevenLabsCallInsights: insights } : a,
+    );
+    localStorage.setItem(RECENT_ANALYSES_STORAGE_KEY, JSON.stringify(next));
+  } catch (e) {
+    console.error("Failed to persist call insights", e);
+  }
+}
+
+function sleep(ms: number) {
+  return new Promise<void>((resolve) => setTimeout(resolve, ms));
+}
 
 function loadAnalysisByCaseId(caseId: string | null): AnalysisResult | null {
   if (!caseId) return null;
@@ -144,11 +165,22 @@ export default function CallPage() {
     null,
   );
 
+  const [callInsights, setCallInsights] = useState<ElevenLabsCallInsights | null>(
+    null,
+  );
+  const [insightsLoading, setInsightsLoading] = useState(false);
+  const [insightsError, setInsightsError] = useState<string | null>(null);
+
   // Status flags for the auto-generation cascade
   const [statusText, setStatusText] = useState("Identifying targets...");
 
   const hasFetched = useRef(false);
 
+  useEffect(() => {
+    if (analysis?.elevenLabsCallInsights) {
+      setCallInsights(analysis.elevenLabsCallInsights);
+    }
+  }, [analysis]);
 
   // 1. Fetch Outreach Plan
   useEffect(() => {
@@ -260,10 +292,12 @@ export default function CallPage() {
     briefWithOverrides?.contactTargets[0];
 
   const handlePlaceCall = async () => {
-    if (!elevenLabsPayload) return;
+    if (!elevenLabsPayload || !analysis) return;
+    const callStartedAtUnix = Math.floor(Date.now() / 1000);
     setCallLoading(true);
     setCallError(null);
     setCallSuccess(null);
+    setInsightsError(null);
     try {
       const res = await fetch("/api/outreach/elevenlabs/call", {
         method: "POST",
@@ -275,6 +309,49 @@ export default function CallPage() {
         throw new Error(data.error ?? "Call failed");
       }
       setCallSuccess({ toNumber: data.toNumber });
+
+      setInsightsLoading(true);
+      void (async () => {
+        const maxAttempts = 18;
+        for (let attempt = 0; attempt < maxAttempts; attempt++) {
+          if (attempt === 0) await sleep(12000);
+          else await sleep(7000);
+          try {
+            const ir = await fetch("/api/outreach/elevenlabs/call-insights", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                analysis,
+                callStartedAtUnix,
+                conversationId: data.conversationId ?? undefined,
+                outboundResponse: data.response,
+              }),
+            });
+            const ij = await ir.json();
+            if (ir.ok && ij.insights) {
+              setCallInsights(ij.insights);
+              persistCallInsightsToStorage(analysis.caseId, ij.insights);
+              setInsightsLoading(false);
+              return;
+            }
+            if (!ij.retryable && ir.status !== 404) {
+              setInsightsError(ij.error ?? "Could not load call insights.");
+              setInsightsLoading(false);
+              return;
+            }
+          } catch (e) {
+            setInsightsError(
+              e instanceof Error ? e.message : "Call insights request failed.",
+            );
+            setInsightsLoading(false);
+            return;
+          }
+        }
+        setInsightsError(
+          "Timed out waiting for the ElevenLabs transcript summary. Try again in a few minutes or check the ElevenLabs dashboard for the conversation.",
+        );
+        setInsightsLoading(false);
+      })();
     } catch (err) {
       setCallError(err instanceof Error ? err.message : String(err));
     } finally {
@@ -447,6 +524,79 @@ export default function CallPage() {
                     </p>
                   </div>
                 </div>
+              </div>
+            )}
+
+            {(insightsLoading || insightsError || callInsights) && (
+              <div className="space-y-3">
+                {insightsLoading && (
+                  <div className="rounded-lg border border-violet-200 bg-violet-50/90 px-4 py-3 text-sm text-violet-900">
+                    Fetching ElevenLabs transcript summary and GPT next-step
+                    guidance… this can take a minute after the call ends.
+                  </div>
+                )}
+                {insightsError && (
+                  <div className="rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
+                    {insightsError}
+                  </div>
+                )}
+                {callInsights && (
+                  <div className="space-y-3 rounded-lg border border-violet-200 bg-white px-4 py-4 shadow-sm">
+                    <p className="text-xs font-semibold uppercase tracking-wide text-violet-800">
+                      Call insights (saved to this case)
+                    </p>
+                    {callInsights.callSummaryTitle && (
+                      <p className="text-sm font-semibold text-slate-900">
+                        {callInsights.callSummaryTitle}
+                      </p>
+                    )}
+                    <div>
+                      <p className="text-xs font-medium text-slate-500">
+                        ElevenLabs summary
+                      </p>
+                      <p className="mt-1 whitespace-pre-wrap text-sm text-slate-800">
+                        {callInsights.transcriptSummary}
+                      </p>
+                    </div>
+                    <div>
+                      <p className="text-xs font-medium text-slate-500">
+                        Suggested next steps
+                      </p>
+                      <p className="mt-1 whitespace-pre-wrap text-sm text-slate-800">
+                        {callInsights.nextStepsGuidance}
+                      </p>
+                    </div>
+                    {(callInsights.patientImpactSummary ||
+                      callInsights.escalationNotes) && (
+                      <div className="grid gap-3 sm:grid-cols-2">
+                        {callInsights.patientImpactSummary && (
+                          <div className="rounded-md border border-slate-100 bg-slate-50 p-3">
+                            <p className="text-xs font-medium text-slate-600">
+                              Patient impact (general info)
+                            </p>
+                            <p className="mt-1 whitespace-pre-wrap text-xs text-slate-700">
+                              {callInsights.patientImpactSummary}
+                            </p>
+                          </div>
+                        )}
+                        {callInsights.escalationNotes && (
+                          <div className="rounded-md border border-slate-100 bg-slate-50 p-3">
+                            <p className="text-xs font-medium text-slate-600">
+                              Escalation options
+                            </p>
+                            <p className="mt-1 whitespace-pre-wrap text-xs text-slate-700">
+                              {callInsights.escalationNotes}
+                            </p>
+                          </div>
+                        )}
+                      </div>
+                    )}
+                    <p className="text-[10px] text-slate-400">
+                      Not legal advice. Conversation id{" "}
+                      {callInsights.conversationId}
+                    </p>
+                  </div>
+                )}
               </div>
             )}
 

@@ -57,6 +57,22 @@ export interface RelevantLaw {
   description: string
 }
 
+/** Populated after an ElevenLabs outbound call when transcript insights are fetched. */
+export interface ElevenLabsCallInsights {
+  conversationId: string
+  /** From ElevenLabs: list `transcript_summary` or GET `analysis.transcript_summary`. */
+  transcriptSummary: string
+  callSummaryTitle?: string | null
+  /** Joined conversation transcript (agent/user turns) when available. */
+  transcriptText?: string
+  /** GPT-generated next steps and strategy (markdown). */
+  nextStepsGuidance: string
+  /** Financial / rights framing for the patient (not legal advice). */
+  patientImpactSummary: string
+  escalationNotes: string
+  fetchedAt: string
+}
+
 export interface AnalysisResult {
   /** UUID — ready for DB persistence when Supabase is added */
   caseId: string
@@ -69,6 +85,8 @@ export interface AnalysisResult {
   laws: RelevantLaw[]
   /** ISO 8601 timestamp */
   analyzedAt: string
+  /** Set when call transcript insights are pulled from ElevenLabs + follow-up LLM. */
+  elevenLabsCallInsights?: ElevenLabsCallInsights
 }
 
 /**
