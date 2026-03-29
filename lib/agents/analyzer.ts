@@ -9,11 +9,15 @@
 
 import { v4 as uuidv4 } from "uuid"
 import { getAI, MODEL_NAME } from "@/lib/gemini"
-import type { AnalysisResult, ExtractedFields, DetectedIssue, RecommendedAction } from "@/types/analysis"
+import type { AnalysisResult, ExtractedFields, DetectedIssue, RecommendedAction, RelevantLaw } from "@/types/analysis"
 
 const EMPTY_FIELDS: ExtractedFields = {
   provider: null,
+  providerPhone: null,
+  providerEmail: null,
   insurer: null,
+  insurerPhone: null,
+  insurerEmail: null,
   billedAmount: null,
   insurerPaid: null,
   patientResponsibility: null,
@@ -41,6 +45,7 @@ function normalizeResponse(parsed: any): {
   detectedIssues: DetectedIssue[]
   explanation: string
   recommendedActions: RecommendedAction[]
+  laws: RelevantLaw[]
 } {
   const ef = parsed.extractedFields ?? {}
   return {
@@ -59,6 +64,15 @@ function normalizeResponse(parsed: any): {
     detectedIssues: Array.isArray(parsed.detectedIssues) ? parsed.detectedIssues : [],
     explanation: parsed.explanation ?? "No explanation provided.",
     recommendedActions: Array.isArray(parsed.recommendedActions) ? parsed.recommendedActions : [],
+    laws: Array.isArray(parsed.laws)
+      ? parsed.laws.slice(0, 3).map((law: unknown) => {
+          const l = (law ?? {}) as { title?: string; description?: string }
+          return {
+            title: l.title ?? "Unknown Law",
+            description: l.description ?? "",
+          }
+        })
+      : [],
   }
 }
 
@@ -85,7 +99,11 @@ function getFallbackDemoAnalysis(): ReturnType<typeof normalizeResponse> {
   return {
     extractedFields: {
       provider: "City General Hospital",
+      providerPhone: "(203) 555-0100",
+      providerEmail: "billing@citygeneralhospital.com",
       insurer: "BlueHealth PPO",
+      insurerPhone: "1-800-555-0199",
+      insurerEmail: "claims@bluehealthppo.com",
       billedAmount: 2650,
       insurerPaid: 1620,
       patientResponsibility: 1030,
@@ -152,6 +170,20 @@ function getFallbackDemoAnalysis(): ReturnType<typeof normalizeResponse> {
         action: "If the provider insists on billing the difference between their charges and the insurer-allowed amount, this may constitute improper balance billing. Contact your state insurance commissioner or reference the No Surprises Act if applicable.",
       },
     ],
+    laws: [
+      {
+        title: "No Surprises Act, 26 USC §9816",
+        description: "Prohibits balance billing for emergency services and protects patients from unexpected out-of-network charges at in-network facilities.",
+      },
+      {
+        title: "Fair Credit Billing Act, 15 USC §1666",
+        description: "Gives patients the right to dispute billing errors in writing within 60 days and requires the provider to investigate before collecting.",
+      },
+      {
+        title: "Connecticut Unfair Trade Practices Act, CGS §42-110b",
+        description: "Prohibits unfair or deceptive billing practices by healthcare providers in Connecticut, allowing patients to file complaints with the state Attorney General.",
+      },
+    ],
   }
 }
 
@@ -178,7 +210,11 @@ You MUST return your analysis as a JSON object with EXACTLY these fields:
 {
   "extractedFields": {
     "provider": string or null,       // Name of the healthcare provider / hospital
+    "providerPhone": string or null,  // Provider phone number from the medical bill
+    "providerEmail": string or null,  // Provider email address from the medical bill
     "insurer": string or null,        // Name of the insurance company
+    "insurerPhone": string or null,   // Insurer phone number from the EOB
+    "insurerEmail": string or null,   // Insurer email address from the EOB
     "billedAmount": number or null,   // Total amount billed by provider (no $ sign)
     "insurerPaid": number or null,    // Amount the insurer paid (no $ sign)
     "patientResponsibility": number or null, // Amount patient owes per this document (no $ sign)
@@ -208,15 +244,22 @@ You MUST return your analysis as a JSON object with EXACTLY these fields:
       "category": "contact_provider" | "file_appeal" | "legal_protection" | "dispute_self_pay",
       "action": "Specific action the patient should take"
     }
+  ],
+  "laws": [
+    {
+      "title": "Short statute or law name with citation (e.g. 'No Surprises Act, 26 USC §9816')",
+      "description": "One sentence explaining how this law protects the patient in this situation"
+    }
   ]
 }
 
 IMPORTANT:
 - All field names must match EXACTLY as shown above (camelCase)
-- detectedIssues, recommendedActions, and cptCodes MUST be arrays (use [] if empty)
+- detectedIssues, recommendedActions, cptCodes, and laws MUST be arrays (use [] if empty)
 - Monetary values must be numbers without dollar signs or commas
 - Be thorough: detect ALL issues you can find, not just the most obvious one
-- Provide specific, actionable recommendations`
+- Provide specific, actionable recommendations
+- laws MUST contain exactly 3 items relevant to the detected billing issues. Each has a "title" (statute name/citation) and "description" (one sentence). If documents mention a specific US state, include state-specific laws; otherwise default to New Haven, Connecticut laws (include both Connecticut state statutes and applicable federal laws).`
 
 const MULTI_DOC_SYSTEM_PROMPT = `You are an expert medical billing advocate with deep knowledge of:
 - CPT/ICD coding standards and common upcoding patterns
@@ -224,6 +267,7 @@ const MULTI_DOC_SYSTEM_PROMPT = `You are an expert medical billing advocate with
 - The No Surprises Act (NSA) and balance billing protections
 - CMS billing guidelines and Medicare/Medicaid rules
 - Common overcharge and duplicate billing patterns
+- Relevant federal and state patient protection statutes
 
 You are receiving MULTIPLE documents for cross-comparison analysis:
 - A medical bill from the provider
@@ -258,6 +302,7 @@ const SYSTEM_PROMPT = `You are an expert medical billing advocate with deep know
 - The No Surprises Act (NSA) and balance billing protections
 - CMS billing guidelines and Medicare/Medicaid rules
 - Common overcharge and duplicate billing patterns
+- Relevant federal and state patient protection statutes
 
 Analyze the provided medical bill or EOB document and return a structured analysis.
 Be specific and actionable. If information is missing from the document, use null.

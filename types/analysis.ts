@@ -1,6 +1,10 @@
 export interface ExtractedFields {
   provider: string | null
+  providerPhone: string | null
+  providerEmail: string | null
   insurer: string | null
+  insurerPhone: string | null
+  insurerEmail: string | null
   billedAmount: number | null
   insurerPaid: number | null
   patientResponsibility: number | null
@@ -48,6 +52,11 @@ export interface RecommendedAction {
   action: string
 }
 
+export interface RelevantLaw {
+  title: string
+  description: string
+}
+
 export interface AnalysisResult {
   /** UUID — ready for DB persistence when Supabase is added */
   caseId: string
@@ -56,6 +65,8 @@ export interface AnalysisResult {
   /** Plain-English explanation of findings */
   explanation: string
   recommendedActions: RecommendedAction[]
+  /** Up to 3 relevant laws based on detected issues */
+  laws: RelevantLaw[]
   /** ISO 8601 timestamp */
   analyzedAt: string
 }
