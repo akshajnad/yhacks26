@@ -299,7 +299,7 @@ export default function CallPage() {
     setCallSuccess(null);
     setInsightsError(null);
     try {
-      const res = await fetch("/api/outreach/elevenlabs/call", {
+      const res = await fetch("/api/outreach/elevenlabs/curl", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ payload: elevenLabsPayload }),
