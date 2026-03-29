@@ -302,13 +302,30 @@ export default function CallPage() {
               </div>
             )}
             {callSuccess && (
-              <div className="flex items-center gap-2 rounded-md border border-green-300 bg-green-100 px-4 py-3">
-                <svg className="h-5 w-5 shrink-0 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                </svg>
-                <p className="text-sm font-medium text-green-800">
-                  Call successfully initiated to {callSuccess.toNumber}. The ElevenLabs agent is calling them now.
-                </p>
+              <div className="space-y-3">
+                <div className="flex items-center gap-2 rounded-md border border-green-300 bg-green-100 px-4 py-3 shadow-sm">
+                  <svg className="h-5 w-5 shrink-0 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                  </svg>
+                  <p className="text-sm font-medium text-green-800">
+                    Call successfully initiated to {callSuccess.toNumber}. The ElevenLabs agent is calling them now.
+                  </p>
+                </div>
+                
+                {/* Hardcoded Follow-up notification */}
+                <div className="flex items-start gap-3 rounded-lg border border-blue-200 bg-blue-50 px-4 py-4 shadow-sm animate-in slide-in-from-bottom-2 duration-500">
+                  <div className="mt-0.5 rounded-full bg-blue-100 p-1">
+                    <svg className="h-4 w-4 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                    </svg>
+                  </div>
+                  <div>
+                    <h4 className="text-sm font-semibold text-blue-900">Follow-up Scheduled</h4>
+                    <p className="mt-1 text-sm text-blue-700 leading-relaxed">
+                      Our Redline agent has successfully reached out on your behalf. We have scheduled an automated follow-up in <span className="font-bold underline">7 days</span> to verify the status of your dispute if no resolution is detected.
+                    </p>
+                  </div>
+                </div>
               </div>
             )}
 

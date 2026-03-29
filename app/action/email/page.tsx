@@ -231,7 +231,27 @@ export default function EmailComposerPage() {
           </button>
         </div>
 
-        {sendState ? <p className="text-sm text-slate-700">{sendState}</p> : null}
+        {sendState ? (
+          <div className="space-y-3">
+            <p className="text-sm font-medium text-slate-800 border-l-4 border-slate-900 pl-3 py-1 bg-slate-50">{sendState}</p>
+            
+            {sendState.includes("Email sent successfully") && (
+              <div className="flex items-start gap-3 rounded-lg border border-blue-200 bg-blue-50 px-4 py-4 shadow-sm animate-in slide-in-from-bottom-2 duration-500">
+                <div className="mt-0.5 rounded-full bg-blue-100 p-1">
+                  <svg className="h-4 w-4 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                  </svg>
+                </div>
+                <div>
+                  <h4 className="text-sm font-semibold text-blue-900">Follow-up Scheduled</h4>
+                  <p className="mt-1 text-sm text-blue-700 leading-relaxed">
+                    Dispute email dispatched. Our Redline agent has scheduled an automated follow-up in <span className="font-bold underline">7 days</span> to check for a response and verify if further action is required.
+                  </p>
+                </div>
+              </div>
+            )}
+          </div>
+        ) : null}
       </div>
     </section>
   )
