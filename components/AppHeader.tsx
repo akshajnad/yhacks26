@@ -26,6 +26,10 @@ export function AppHeader() {
                 className="rounded-md px-3 py-1.5 text-sm font-medium text-slate-600 hover:bg-slate-100 hover:text-slate-900"
               >
                 New Analysis
+                href="/legal"
+                className="rounded-md px-3 py-2 text-sm font-medium text-slate-600 hover:bg-slate-100 hover:text-slate-900"
+              >
+                Legal Research
               </Link>
               <Link
                 href="/dashboard"
@@ -60,6 +64,21 @@ export function AppHeader() {
             >
               Login
             </button>
+          ) : mounted && !isLoading ? (
+            <>
+              <Link
+                href="/legal"
+                className="rounded-md px-3 py-2 text-sm font-medium text-slate-600 hover:bg-slate-100 hover:text-slate-900"
+              >
+                Legal Research
+              </Link>
+              <button
+                onClick={() => loginWithRedirect()}
+                className="rounded-md bg-slate-900 px-4 py-2 text-sm font-medium text-white hover:bg-slate-800"
+              >
+                Login
+              </button>
+            </>
           ) : null}
         </nav>
       </div>

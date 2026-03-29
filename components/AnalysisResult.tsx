@@ -386,6 +386,89 @@ function FlowNode({
     <div className={`rounded-lg border bg-white p-3 ${toneClasses} ${active ? "ring-1 ring-slate-300" : ""}`}>
       <p className="text-sm font-semibold text-slate-900">{title}</p>
       <p className="mt-1 text-sm text-slate-600">{count} issue{count === 1 ? "" : "s"}</p>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Section 3: Explanation */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <InfoIcon />
+            Plain-English Explanation
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <p className="text-sm leading-relaxed text-[var(--foreground)]">{explanation}</p>
+        </CardContent>
+      </Card>
+
+      {/* Section 4: Recommended Actions */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <CheckIcon />
+            Recommended Next Steps
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          {recommendedActions.length === 0 ? (
+            <p className="text-sm text-[var(--muted-foreground)]">No specific actions recommended.</p>
+          ) : (
+            <ol className="space-y-3">
+              {recommendedActions.map((action, i) => (
+                <li key={i} className="flex items-start gap-3">
+                  <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-blue-100 text-xs font-semibold text-blue-800">
+                    {i + 1}
+                  </span>
+                  <div className="flex flex-col gap-1">
+                    <span className={`w-fit rounded-full px-2.5 py-0.5 text-xs font-semibold ${CATEGORY_COLORS[action.category]}`}>
+                      {CATEGORY_LABELS[action.category]}
+                    </span>
+                    <p className="text-sm text-[var(--foreground)]">{action.action}</p>
+                  </div>
+                </li>
+              ))}
+            </ol>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Section 5: Relevant Laws */}
+      {(result.laws ?? []).length > 0 && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <ScaleIcon />
+              Relevant Legal Protections
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-3">
+              {(result.laws ?? []).map((law, i) => (
+                <div key={i} className="rounded-lg border border-indigo-200 bg-indigo-50 p-3">
+                  <p className="text-sm font-semibold text-indigo-900">{law.title}</p>
+                  <p className="mt-1 text-sm text-[var(--foreground)]">{law.description}</p>
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Take Action (stubbed) */}
+      <div className="rounded-lg border border-dashed border-[var(--border)] p-4 text-center">
+        <p className="mb-3 text-sm text-[var(--muted-foreground)]">
+          Ready to act? The action layer (automated emails, calls, and appeals) is coming in the next module.
+        </p>
+        <Button disabled variant="outline" className="gap-2">
+          <LightningIcon />
+          Take Action
+          <span className="rounded-full bg-[var(--muted)] px-2 py-0.5 text-xs text-[var(--muted-foreground)]">
+            Coming soon
+          </span>
+        </Button>
+      </div>
     </div>
   )
 }
@@ -476,6 +559,15 @@ function CheckIcon() {
 }
 
 function FlowIcon() {
+function ScaleIcon() {
+  return (
+    <svg className="h-5 w-5 text-indigo-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 6l3 1m0 0l-3 9a5.002 5.002 0 006.001 0M6 7l3 9M6 7l6-2m6 2l3-1m-3 1l-3 9a5.002 5.002 0 006.001 0M18 7l3 9m-3-9l-6-2m0-2v2m0 16V5m0 16H9m3 0h3" />
+    </svg>
+  )
+}
+
+function LightningIcon() {
   return (
     <svg className="h-5 w-5 text-slate-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h7m0 0L8 3m3 3L8 9m9 9h-7m0 0l3-3m-3 3l3 3M4 18h7m2-12h7" />
