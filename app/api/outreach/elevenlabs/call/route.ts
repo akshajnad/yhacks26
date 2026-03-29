@@ -13,6 +13,7 @@
  */
 
 import { NextRequest, NextResponse } from "next/server"
+import { exec } from "child_process"
 import {
   mergeDynamicVariablesForOutboundCall,
   stripElevenLabsEnvValue,
@@ -92,16 +93,8 @@ function normalizeE164(raw: string): string | null {
 }
 
 export async function POST(req: NextRequest) {
-  const apiKey = stripElevenLabsEnvValue(process.env.ELEVENLABS_API_KEY)
   const agentId = stripElevenLabsEnvValue(process.env.ELEVENLABS_AGENT_ID)
   const phoneNumberId = stripElevenLabsEnvValue(process.env.ELEVENLABS_AGENT_PHONE_NUMBER_ID)
-
-  if (!apiKey) {
-    return NextResponse.json(
-      { error: "ELEVENLABS_API_KEY is not set. Add it to your .env.local file." },
-      { status: 503 }
-    )
-  }
   if (!agentId) {
     return NextResponse.json(
       { error: "ELEVENLABS_AGENT_ID is not set. Add it to your .env.local file." },
@@ -138,119 +131,46 @@ export async function POST(req: NextRequest) {
   const toNumber = normalizeE164(rawNumber)
   if (!toNumber) {
     return NextResponse.json(
-      { error: `Could not parse phone number: "${rawNumber}". Use E.164 format like +15551234567.` },
+      { error: `Could not parse phone number: "${rawNumber}". Use E.164 format.` },
       { status: 400 }
     )
   }
 
-  // Default: NO agent field overrides — locked agents reject first_message / prompt from API.
-  // Opt-in only when the workspace explicitly allows overrides.
-  const allowFirstMessageOverride =
-    process.env.ELEVENLABS_ALLOW_FIRST_MESSAGE_OVERRIDE === "true" ||
-    process.env.ELEVENLABS_ALLOW_FIRST_MESSAGE_OVERRIDE === "1"
+  const firstMessage = payload.conversation.firstMessage || "Hi, I am calling about a medical bill.";
 
-  const allowPromptOverride =
-    process.env.ELEVENLABS_ALLOW_PROMPT_OVERRIDE === "true" ||
-    process.env.ELEVENLABS_ALLOW_PROMPT_OVERRIDE === "1"
+  console.log("[/api/outreach/elevenlabs/call] Executing curl to:", toNumber)
 
-  const agentOverride: Record<string, unknown> = {}
-  if (allowFirstMessageOverride) {
-    agentOverride.first_message = payload.conversation.firstMessage
-  }
-  if (allowPromptOverride) {
-    agentOverride.prompt = { prompt: payload.conversation.systemPrompt }
-  }
+  const curlCommand = `curl -s -L -X POST "https://api.lava.so/v1/forward/https://api.elevenlabs.io/v1/convai/twilio/outbound-call" \\
+  -H "xi-api-key: $(echo -n '{"secret_key":"aks_live_ZDewxS85jGsA8d4orViSt2UwH6jS_rdKt9vks0cftIuenW_XO09YkJI","provider_key":"sk_f181173838d41ea071720e2f99f474510c6b689577482ffc"}' | base64)" \\
+  -H "Content-Type: application/json" \\
+  -d '{"agent_id":"agent_4501kmwj9ha4f3kaethmn39hk6y2","agent_phone_number_id":"phnum_2601kmwhkemde2rsz9mwr6t03wky","to_number":${JSON.stringify(toNumber)},"first_message":${JSON.stringify(firstMessage).replace(/'/g, "'\\''")}}'`;
 
-  // Runtime text + merged reference IDs (see lib/integrations/elevenlabs.ts mergeReferenceData)
-  const baseVars = mergeDynamicVariablesForOutboundCall(payload)
+  return new Promise((resolve) => {
+    exec(curlCommand, (error, stdout, stderr) => {
+      if (error) {
+        console.error(`exec error: ${error}`);
+        return resolve(NextResponse.json({ error: error.message, stderr }, { status: 500 }));
+      }
+      
+      try {
+        const parsed = JSON.parse(stdout);
+        // ElevanLabs 422 error check
+        if (parsed.detail && Array.isArray(parsed.detail)) {
+            console.error("[/api/outreach/elevenlabs/call] ElevenLabs error:", parsed);
+            return resolve(NextResponse.json(elevenLabsErrorPayload(422, parsed, stdout), { status: 422 }));
+        }
 
-  // By default omit conversation_config_override entirely — "locked" agents reject even empty agent {}.
-  // Include override block only when: (1) sending real API overrides, or (2) explicit opt-in for curl-compatible shell.
-  const includeEmptyOverrideShell =
-    process.env.ELEVENLABS_INCLUDE_EMPTY_CONVERSATION_OVERRIDE === "true" ||
-    process.env.ELEVENLABS_INCLUDE_EMPTY_CONVERSATION_OVERRIDE === "1"
-
-  const hasAgentApiOverrides = allowFirstMessageOverride || allowPromptOverride
-
-  const conversationInitiationClientData: Record<string, unknown> = {
-    custom_llm_extra_body: {},
-    user_id: `medbill-${payload.caseId.slice(0, 8)}`,
-    source_info: {},
-    branch_id: "",
-    environment: "",
-    dynamic_variables: baseVars,
-  }
-
-  if (hasAgentApiOverrides || includeEmptyOverrideShell) {
-    conversationInitiationClientData.conversation_config_override = {
-      turn: {},
-      tts: {},
-      conversation: {},
-      agent: agentOverride,
-    }
-  }
-
-  // Build the ElevenLabs request body.
-  const elevenLabsBody = {
-    agent_id: agentId,
-    agent_phone_number_id: phoneNumberId,
-    to_number: toNumber,
-    conversation_initiation_client_data: conversationInitiationClientData,
-    call_recording_enabled: false,
-    telephony_call_config: {},
-  }
-
-  console.log("[/api/outreach/elevenlabs/call] Initiating call to:", toNumber)
-  console.log("[/api/outreach/elevenlabs/call] Agent ID:", agentId)
-  console.log("[/api/outreach/elevenlabs/call] first_message override:", allowFirstMessageOverride)
-  console.log("[/api/outreach/elevenlabs/call] prompt override:", allowPromptOverride)
-  console.log("[/api/outreach/elevenlabs/call] has conversation_config_override:", "conversation_config_override" in conversationInitiationClientData)
-  console.log("[/api/outreach/elevenlabs/call] First message length:", payload.conversation.firstMessage?.length ?? 0)
-  console.log(
-    "[/api/outreach/elevenlabs/call] dynamic_variables keys:",
-    Object.keys(baseVars).sort().join(", ")
-  )
-
-  let upstream: Response
-  try {
-    upstream = await fetch(ELEVENLABS_OUTBOUND_URL, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "xi-api-key": apiKey,
-      },
-      body: JSON.stringify(elevenLabsBody),
-    })
-  } catch (err) {
-    const message = err instanceof Error ? err.message : String(err)
-    console.error("[/api/outreach/elevenlabs/call] Network error:", message)
-    return NextResponse.json(
-      { error: "Network error reaching ElevenLabs API", detail: message },
-      { status: 502 }
-    )
-  }
-
-  const responseText = await upstream.text()
-  let responseData: unknown
-  try {
-    responseData = JSON.parse(responseText)
-  } catch {
-    responseData = { raw: responseText }
-  }
-
-  if (!upstream.ok) {
-    console.error("[/api/outreach/elevenlabs/call] ElevenLabs error:", upstream.status, responseText)
-    const payload = elevenLabsErrorPayload(upstream.status, responseData, responseText)
-    return NextResponse.json(payload, { status: upstream.status })
-  }
-
-  console.log("[/api/outreach/elevenlabs/call] Call initiated successfully:", responseData)
-  const conversationId = extractConversationIdFromOutboundResponse(responseData)
-  return NextResponse.json({
-    success: true,
-    toNumber,
-    agentId,
-    conversationId: conversationId ?? null,
-    response: responseData,
-  })
+        const conversationId = extractConversationIdFromOutboundResponse(parsed);
+        resolve(NextResponse.json({ 
+          success: true, 
+          toNumber, 
+          agentId: "agent_4501kmwj9ha4f3kaethmn39hk6y2",
+          conversationId: conversationId ?? null, 
+          response: parsed 
+        }));
+      } catch {
+        resolve(NextResponse.json({ raw: stdout, toNumber }, { status: 500 }));
+      }
+    });
+  });
 }
