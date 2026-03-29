@@ -66,7 +66,8 @@ export function getFallbackDraft(result: AnalysisResult): GeneratedEmailDraft {
       "Please review this account and provide a corrected statement or written explanation for each discrepancy.",
       "",
       "Thank you,",
-      "Patient",
+      "Akshaj Nadimpalli",
+      "Phone: 8609962832"
     ].join("\n"),
   }
 }

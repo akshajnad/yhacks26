@@ -28,6 +28,10 @@ Use these extracted details when available:
 - billed amount / insurer paid / patient responsibility
 - recommended actions
 
+When signing off the email at the end, ALWAYS use the following specific contact information and DO NOT use generic placeholders like [Your Name]:
+- Name: Akshaj Nadimpalli
+- Phone: 8609962832
+
 Output must be STRICT JSON ONLY:
 {
   "recipientType": "provider" | "insurer",
