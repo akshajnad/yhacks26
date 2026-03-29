@@ -8,7 +8,7 @@ import { AnalysisResultDisplay } from "@/components/AnalysisResult"
 import type { AnalysisResult } from "@/types/analysis"
 import { supabase } from "@/lib/supabase"
 
-const RECENT_ANALYSES_STORAGE_KEY = "redline.recent-analyses.v1"
+const RECENT_ANALYSES_STORAGE_KEY = "NIPS.recent-analyses.v1"
 const MAX_RECENT_ANALYSES = 5
 
 function readRecentAnalyses(): AnalysisResult[] {

@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server"
 import { getGoogleOAuthConfig } from "@/lib/google-oauth"
 
-const OAUTH_STATE_COOKIE = "redline.google.oauth.state"
+const OAUTH_STATE_COOKIE = "NIPS.google.oauth.state"
 
 export async function GET() {
   try {

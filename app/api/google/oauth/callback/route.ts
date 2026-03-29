@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server"
 import { getGoogleOAuthConfig, writeGoogleOAuthSession } from "@/lib/google-oauth"
 
-const OAUTH_STATE_COOKIE = "redline.google.oauth.state"
+const OAUTH_STATE_COOKIE = "NIPS.google.oauth.state"
 
 interface TokenResponse {
   access_token: string
