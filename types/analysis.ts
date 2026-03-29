@@ -1,6 +1,10 @@
 export interface ExtractedFields {
   provider: string | null
+  providerPhone: string | null
+  providerEmail: string | null
   insurer: string | null
+  insurerPhone: string | null
+  insurerEmail: string | null
   billedAmount: number | null
   insurerPaid: number | null
   patientResponsibility: number | null

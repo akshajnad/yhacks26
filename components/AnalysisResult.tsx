@@ -133,7 +133,11 @@ export function AnalysisResultDisplay({
   const ef = result.extractedFields;
   const extractedFields = {
     provider: ef?.provider ?? null,
+    providerPhone: ef?.providerPhone ?? null,
+    providerEmail: ef?.providerEmail ?? null,
     insurer: ef?.insurer ?? null,
+    insurerPhone: ef?.insurerPhone ?? null,
+    insurerEmail: ef?.insurerEmail ?? null,
     billedAmount: ef?.billedAmount ?? null,
     insurerPaid: ef?.insurerPaid ?? null,
     patientResponsibility: ef?.patientResponsibility ?? null,
@@ -227,36 +231,73 @@ export function AnalysisResultDisplay({
         </div>
       </div>
 
-      {revealStage >= 2 ? (
-        <Card className="shadow-none">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <FlowIcon />
-              Billing flow visualization
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="grid gap-3 md:grid-cols-[1fr_auto_1fr_auto_1fr]">
-              <FlowNode
-                title="Provider Bill"
-                count={stageTotals.provider}
-                active={highlightedStage === "provider"}
-                tone="blue"
-              />
-              <FlowArrow />
-              <FlowNode
-                title="Insurance Processing"
-                count={stageTotals.insurance}
-                active={highlightedStage === "insurance"}
-                tone="slate"
-              />
-              <FlowArrow />
-              <FlowNode
-                title="Patient Bill"
-                count={stageTotals.patient}
-                active={highlightedStage === "patient"}
-                tone="amber"
-              />
+      {/* Section 1: Extracted Fields */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <DocumentIcon />
+            Extracted Fields
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+            <Field label="Provider" value={extractedFields.provider} />
+            <Field label="Provider Phone" value={extractedFields.providerPhone} />
+            <Field label="Provider Email" value={extractedFields.providerEmail} />
+            <Field label="Insurer" value={extractedFields.insurer} />
+            <Field label="Insurer Phone" value={extractedFields.insurerPhone} />
+            <Field label="Insurer Email" value={extractedFields.insurerEmail} />
+            <Field label="Service Date" value={formatDate(extractedFields.serviceDate)} />
+            <Field label="Claim Number" value={extractedFields.claimNumber} />
+            <Field label="Member ID" value={extractedFields.memberID} />
+            <Field label="Billed Amount" value={formatCurrency(extractedFields.billedAmount)} />
+            <Field label="Insurer Paid" value={formatCurrency(extractedFields.insurerPaid)} />
+            <Field label="Your Responsibility" value={formatCurrency(extractedFields.patientResponsibility)} isHighlight />
+          </div>
+
+          {extractedFields.cptCodes.length > 0 && (
+            <>
+              <Separator className="my-4" />
+              <div>
+                <p className="mb-2 text-sm font-medium text-[var(--muted-foreground)]">CPT Codes</p>
+                <div className="flex flex-wrap gap-2">
+                  {extractedFields.cptCodes.map((code) => (
+                    <Badge key={code} variant="outline" className="font-mono">
+                      {code}
+                    </Badge>
+                  ))}
+                </div>
+              </div>
+            </>
+          )}
+
+          {extractedFields.denialReason && (
+            <>
+              <Separator className="my-4" />
+              <Field label="Denial Reason" value={extractedFields.denialReason} isFullWidth />
+            </>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Section 2: Issues Detected */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <AlertIcon />
+            Issues Detected
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          {detectedIssues.length === 0 ? (
+            <p className="text-sm text-[var(--muted-foreground)]">
+              No billing issues detected in this document.
+            </p>
+          ) : (
+            <div className="space-y-3">
+              {detectedIssues.map((issue, i) => (
+                <IssueCard key={i} issue={issue} />
+              ))}
             </div>
           </CardContent>
         </Card>

@@ -13,7 +13,11 @@ import type { AnalysisResult, ExtractedFields, DetectedIssue, RecommendedAction,
 
 const EMPTY_FIELDS: ExtractedFields = {
   provider: null,
+  providerPhone: null,
+  providerEmail: null,
   insurer: null,
+  insurerPhone: null,
+  insurerEmail: null,
   billedAmount: null,
   insurerPaid: null,
   patientResponsibility: null,
@@ -78,7 +82,11 @@ function getFallbackDemoAnalysis(): ReturnType<typeof normalizeResponse> {
   return {
     extractedFields: {
       provider: "City General Hospital",
+      providerPhone: "(203) 555-0100",
+      providerEmail: "billing@citygeneralhospital.com",
       insurer: "BlueHealth PPO",
+      insurerPhone: "1-800-555-0199",
+      insurerEmail: "claims@bluehealthppo.com",
       billedAmount: 2650,
       insurerPaid: 1620,
       patientResponsibility: 1030,
@@ -178,7 +186,11 @@ You MUST return your analysis as a JSON object with EXACTLY these fields:
 {
   "extractedFields": {
     "provider": string or null,       // Name of the healthcare provider / hospital
+    "providerPhone": string or null,  // Provider phone number from the medical bill
+    "providerEmail": string or null,  // Provider email address from the medical bill
     "insurer": string or null,        // Name of the insurance company
+    "insurerPhone": string or null,   // Insurer phone number from the EOB
+    "insurerEmail": string or null,   // Insurer email address from the EOB
     "billedAmount": number or null,   // Total amount billed by provider (no $ sign)
     "insurerPaid": number or null,    // Amount the insurer paid (no $ sign)
     "patientResponsibility": number or null, // Amount patient owes per this document (no $ sign)
