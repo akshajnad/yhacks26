@@ -16,10 +16,6 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
           <AppHeader />
 
           <main className="flex-1">{children}</main>
-
-          <footer className="border-t border-[var(--border)] bg-white py-4 text-center text-xs text-slate-500">
-            Redline demo workspace
-          </footer>
         </Auth0ProviderWrapper>
       </body>
     </html>
