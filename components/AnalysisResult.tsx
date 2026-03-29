@@ -1,9 +1,11 @@
 "use client"
 
+import { useState } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Separator } from "@/components/ui/separator"
+import { ActionCenter } from "@/components/ActionCenter"
 import type { AnalysisResult, ActionCategory, IssueSeverity } from "@/types/analysis"
 
 interface AnalysisResultProps {
@@ -45,6 +47,7 @@ function formatDate(value: string | null): string {
 }
 
 export function AnalysisResultDisplay({ result }: AnalysisResultProps) {
+  const [showActionCenter, setShowActionCenter] = useState(false)
   const caseId = result.caseId ?? "unknown"
   const analyzedAt = result.analyzedAt ?? new Date().toISOString()
   const explanation = result.explanation ?? "No explanation provided."
@@ -202,19 +205,23 @@ export function AnalysisResultDisplay({ result }: AnalysisResultProps) {
         </CardContent>
       </Card>
 
-      {/* Take Action (stubbed) */}
-      <div className="rounded-lg border border-dashed border-[var(--border)] p-4 text-center">
-        <p className="mb-3 text-sm text-[var(--muted-foreground)]">
-          Ready to act? The action layer (automated emails, calls, and appeals) is coming in the next module.
-        </p>
-        <Button disabled variant="outline" className="gap-2">
-          <LightningIcon />
-          Take Action
-          <span className="rounded-full bg-[var(--muted)] px-2 py-0.5 text-xs text-[var(--muted-foreground)]">
-            Coming soon
-          </span>
-        </Button>
-      </div>
+      {/* Take Action */}
+      {!showActionCenter ? (
+        <div className="rounded-lg border border-blue-200 bg-blue-50 p-4 text-center">
+          <p className="mb-3 text-sm text-blue-800">
+            Ready to dispute? Generate contact targets, email drafts, a call brief, and an ElevenLabs conversation config from this analysis.
+          </p>
+          <Button
+            onClick={() => setShowActionCenter(true)}
+            className="gap-2 bg-blue-600 text-white hover:bg-blue-700"
+          >
+            <LightningIcon />
+            Take Action
+          </Button>
+        </div>
+      ) : (
+        <ActionCenter analysis={result} onClose={() => setShowActionCenter(false)} />
+      )}
     </div>
   )
 }
