@@ -17,7 +17,7 @@ export function AppHeader() {
           href="/"
           className="flex items-center gap-2 text-base font-semibold tracking-tight text-slate-900"
         >
-          <span>Redline</span>
+          <span>NIPS</span>
           <span className="hidden text-xs font-medium text-slate-500 sm:inline">
             Medical Billing Audit
           </span>

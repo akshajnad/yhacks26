@@ -1,6 +1,6 @@
 import { cookies } from "next/headers"
 
-export const GMAIL_SESSION_COOKIE = "redline.gmail.session"
+export const GMAIL_SESSION_COOKIE = "NIPS.gmail.session"
 
 export interface GoogleOAuthSession {
   accessToken: string

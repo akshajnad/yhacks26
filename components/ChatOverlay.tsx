@@ -12,13 +12,13 @@ interface Message {
 export function ChatOverlay({ analysis: propAnalysis }: { analysis?: AnalysisResult }) {
   const [isOpen, setIsOpen] = useState(false)
   const [analysis, setAnalysis] = useState<AnalysisResult | null>(propAnalysis ?? null)
-  
+
   // Try to load latest analysis from localStorage if not provided via props
   useEffect(() => {
     if (propAnalysis) {
       setAnalysis(propAnalysis)
     } else {
-      const RECENT_ANALYSES_STORAGE_KEY = "redline.recent-analyses.v1"
+      const RECENT_ANALYSES_STORAGE_KEY = "NIPS.recent-analyses.v1"
       try {
         const raw = localStorage.getItem(RECENT_ANALYSES_STORAGE_KEY)
         if (raw) {
@@ -36,7 +36,7 @@ export function ChatOverlay({ analysis: propAnalysis }: { analysis?: AnalysisRes
   const [messages, setMessages] = useState<Message[]>([
     {
       role: "assistant",
-      content: "Hello! I'm Redline AI. How can I help you understand this medical bill today?",
+      content: "Hello! I'm NIPS AI. How can I help you understand this medical bill today?",
     },
   ])
   const [input, setInput] = useState("")
@@ -113,7 +113,7 @@ ${analysis.explanation}
           <div className="flex items-center justify-between border-b border-[var(--border)] bg-slate-900 px-4 py-3 text-white">
             <div className="flex items-center gap-2">
               <div className="h-2 w-2 rounded-full bg-green-500 animate-pulse" />
-              <span className="text-sm font-semibold tracking-tight">Redline AI Assistant</span>
+              <span className="text-sm font-semibold tracking-tight">NIPS AI Assistant</span>
             </div>
             <button onClick={() => setIsOpen(false)} className="rounded-full p-1 hover:bg-slate-800 transition-colors">
               <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -126,11 +126,10 @@ ${analysis.explanation}
             {messages.map((m, i) => (
               <div key={i} className={`flex ${m.role === "user" ? "justify-end" : "justify-start"}`}>
                 <div
-                  className={`max-w-[85%] rounded-2xl px-4 py-2 text-sm shadow-sm ${
-                    m.role === "user"
+                  className={`max-w-[85%] rounded-2xl px-4 py-2 text-sm shadow-sm ${m.role === "user"
                       ? "bg-blue-600 text-white rounded-tr-none"
                       : "bg-white border border-[var(--border)] text-slate-800 rounded-tl-none"
-                  }`}
+                    }`}
                 >
                   {m.content}
                 </div>
@@ -181,9 +180,8 @@ ${analysis.explanation}
 
       <button
         onClick={() => setIsOpen(!isOpen)}
-        className={`flex h-14 w-14 items-center justify-center rounded-full bg-slate-900 text-white shadow-2xl transition-all hover:scale-110 active:scale-90 hover:bg-slate-800 focus:outline-none focus:ring-4 focus:ring-slate-400 group relative ${
-          isOpen ? "rotate-180" : ""
-        }`}
+        className={`flex h-14 w-14 items-center justify-center rounded-full bg-slate-900 text-white shadow-2xl transition-all hover:scale-110 active:scale-90 hover:bg-slate-800 focus:outline-none focus:ring-4 focus:ring-slate-400 group relative ${isOpen ? "rotate-180" : ""
+          }`}
         aria-label="Open Chat"
       >
         {isOpen ? (
@@ -201,10 +199,10 @@ ${analysis.explanation}
             </span>
           </div>
         )}
-        
+
         {!isOpen && (
           <div className="absolute right-full mr-4 whitespace-nowrap rounded-lg bg-slate-900 px-3 py-1.5 text-xs font-medium text-white opacity-0 transition-opacity group-hover:opacity-100 hidden sm:block shadow-xl">
-            Ask Redline AI
+            Ask NIPS AI
           </div>
         )}
       </button>
