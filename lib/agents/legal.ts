@@ -14,37 +14,6 @@ import { analyze } from "@/lib/ai/transport"
 import type { AnalysisResult, IssueType } from "@/types/analysis"
 import type { LegalGroundingEntry } from "@/types/outreach"
 
-// ── Static grounding bundle ───────────────────────────────────────────────────
-// Well-known federal protections with high confidence.
-// These are cited only when the matching issue type is present in the analysis.
-
-const STATIC_GROUNDING: Record<IssueType, LegalGroundingEntry[]> = {
-  NO_SURPRISES_ACT_TRIGGER: [
-    {
-      id: uuidv4(),
-      issueType: "NO_SURPRISES_ACT_TRIGGER",
-      citation: "42 U.S.C. § 300gg-111 (No Surprises Act)",
-      title: "No Surprises Act — Balance Billing Prohibition",
-      sourceUrl: "https://www.cms.gov/nosurprises",
-      jurisdiction: "federal",
-      whyItApplies:
-        "Prohibits surprise billing for emergency services and certain non-emergency services at in-network facilities. Limits patient cost-sharing to in-network amounts.",
-      priority: "high",
-      confidence: "grounded",
-    },
-  ],
-  BALANCE_BILLING: [
-    {
-      id: uuidv4(),
-      issueType: "BALANCE_BILLING",
-      citation: "42 U.S.C. § 300gg-111 (No Surprises Act)",
-      title: "No Surprises Act — Balance Billing Prohibition",
-      sourceUrl: "https://www.cms.gov/nosurprises",
-      jurisdiction: "federal",
-      whyItApplies:
-        "Providers may not bill patients for amounts above the in-network cost-sharing amount for covered services at in-network facilities.",
-      priority: "high",
-      confidence: "grounded",
 export interface LineItem {
   code: string;
   description: string;
@@ -138,6 +107,53 @@ export async function researchMedicalBillingLaw(
           { role: "user", content: userMessage },
         ],
       }),
+    }
+  );
+
+  if (!response.ok) {
+    const errorText = await response.text();
+    throw new Error(`OpenAI API error (${response.status}): ${errorText}`);
+  }
+
+  const data = await response.json();
+  const raw: string = data.choices?.[0]?.message?.content;
+  if (!raw)
+    throw new Error("No content returned from legal research agent");
+
+  return stripThinking(raw);
+}
+
+// ── Static grounding bundle ───────────────────────────────────────────────────
+// Well-known federal protections with high confidence.
+// These are cited only when the matching issue type is present in the analysis.
+
+const STATIC_GROUNDING: Record<IssueType, LegalGroundingEntry[]> = {
+  NO_SURPRISES_ACT_TRIGGER: [
+    {
+      id: uuidv4(),
+      issueType: "NO_SURPRISES_ACT_TRIGGER",
+      citation: "42 U.S.C. § 300gg-111 (No Surprises Act)",
+      title: "No Surprises Act — Balance Billing Prohibition",
+      sourceUrl: "https://www.cms.gov/nosurprises",
+      jurisdiction: "federal",
+      whyItApplies:
+        "Prohibits surprise billing for emergency services and certain non-emergency services at in-network facilities. Limits patient cost-sharing to in-network amounts.",
+      priority: "high",
+      confidence: "grounded",
+    },
+  ],
+  BALANCE_BILLING: [
+    {
+      id: uuidv4(),
+      issueType: "BALANCE_BILLING",
+      citation: "42 U.S.C. § 300gg-111 (No Surprises Act)",
+      title: "No Surprises Act — Balance Billing Prohibition",
+      sourceUrl: "https://www.cms.gov/nosurprises",
+      jurisdiction: "federal",
+      whyItApplies:
+        "Providers may not bill patients for amounts above the in-network cost-sharing amount for covered services at in-network facilities.",
+      priority: "high",
+      confidence: "grounded",
     },
   ],
   BILL_EOB_MISMATCH: [
@@ -323,16 +339,4 @@ Identify applicable federal laws and regulations. Only include entries where you
     console.warn("[legal] LLM enrichment failed, using static bundle only:", err)
     return staticEntries
   }
-}
-  if (!response.ok) {
-    const errorText = await response.text();
-    throw new Error(`OpenAI API error (${response.status}): ${errorText}`);
-  }
-
-  const data = await response.json();
-  const raw: string = data.choices?.[0]?.message?.content;
-  if (!raw)
-    throw new Error("No content returned from legal research agent");
-
-  return stripThinking(raw);
 }
