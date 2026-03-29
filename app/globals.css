@@ -1,24 +1,35 @@
 @import "tailwindcss";
 
 :root {
-  --background: #f8fafc;
-  --foreground: #0f172a;
-  --card: #ffffff;
-  --card-foreground: #0f172a;
-  --border: #dbe2ea;
-  --input: #dbe2ea;
-  --primary: #0f2e5e;
-  --primary-foreground: #ffffff;
-  --secondary: #f1f5f9;
-  --secondary-foreground: #0f172a;
-  --muted: #f8fafc;
-  --muted-foreground: #5f6b7a;
-  --accent: #eff4f8;
-  --accent-foreground: #0f172a;
-  --destructive: #dc2626;
-  --destructive-foreground: #ffffff;
-  --ring: #0f2e5e;
-  --radius: 0.5rem;
+  --background: oklch(0.974 0.007 80.721);
+  --foreground: oklch(0.274 0.037 252);
+  --card: oklch(1 0 0);
+  --card-foreground: var(--foreground);
+  --border: oklch(0.894 0.009 248);
+  --input: oklch(0.931 0.009 248);
+  --primary: oklch(0.358 0.091 255);
+  --primary-hover: oklch(0.31 0.085 255);
+  --primary-foreground: oklch(0.975 0.003 252);
+  --secondary: oklch(0.954 0.008 248);
+  --secondary-foreground: oklch(0.318 0.03 252);
+  --muted: oklch(0.963 0.008 248);
+  --muted-foreground: oklch(0.488 0.024 252);
+  --accent: oklch(0.818 0.066 28);
+  --accent-foreground: oklch(0.338 0.078 24);
+  --destructive: oklch(0.631 0.141 26);
+  --destructive-foreground: oklch(0.985 0.004 252);
+  --ring: oklch(0.412 0.091 255);
+  --workspace: oklch(0.992 0.004 248);
+  --panel: oklch(1 0 0);
+  --panel-strong: oklch(0.934 0.011 248);
+  --chip: oklch(0.933 0.017 244);
+  --chip-foreground: oklch(0.327 0.035 250);
+  --viz-1: oklch(0.665 0.079 241);
+  --viz-2: oklch(0.812 0.095 88);
+  --viz-3: oklch(0.688 0.012 252);
+  --dark-surface: oklch(0.286 0.024 252);
+  --dark-surface-foreground: oklch(0.946 0.008 248);
+  --radius: 0.625rem;
 }
 
 @theme inline {

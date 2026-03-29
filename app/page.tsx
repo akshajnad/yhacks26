@@ -13,7 +13,7 @@ const findings = [
 const stats = [
   { figure: "9 in 10", label: "hospital bills contain at least one error", accent: "#F87171" },
   { figure: "78%", label: "who challenged got charges reduced or removed", accent: "#60A5FA" },
-  { figure: "$220B", label: "in medical debt held by Americans", accent: "#FCD34D" },
+  { figure: "$220B", label: "in medical debt held by Americans", accent: "#ffde8e" },
   { figure: "64%", label: "of patients have never once challenged a bill", accent: "#E5E7EB" },
 ]
 
@@ -29,7 +29,7 @@ const UploadPreview = () => (
           display: "flex",
           alignItems: "center",
           gap: 12,
-          backgroundColor: "#fff",
+          backgroundColor: "#ffffff",
           border: "1px solid #DDD8D0",
           borderRadius: 9,
           padding: "12px 16px",
