@@ -4,7 +4,6 @@ import Link from "next/link"
 import { useAuth0 } from "@auth0/auth0-react"
 import { useMemo, useState } from "react"
 import type { ActionCategory, AnalysisResult } from "@/types/analysis"
-
 const RECENT_ANALYSES_STORAGE_KEY = "redline.recent-analyses.v1"
 const MAX_RECENT_ANALYSES = 5
 
