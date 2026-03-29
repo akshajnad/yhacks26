@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -13,6 +14,7 @@ import type {
 
 interface AnalysisResultProps {
   result: AnalysisResult;
+  progressive?: boolean;
 }
 
 const CATEGORY_LABELS: Record<ActionCategory, string> = {
@@ -119,7 +121,10 @@ function recommendedAction(result: AnalysisResult): string {
   return CATEGORY_LABELS[first.category];
 }
 
-export function AnalysisResultDisplay({ result }: AnalysisResultProps) {
+export function AnalysisResultDisplay({
+  result,
+  progressive = false,
+}: AnalysisResultProps) {
   const caseId = result.caseId ?? "unknown";
   const analyzedAt = result.analyzedAt ?? new Date().toISOString();
   const explanation = result.explanation ?? "No explanation provided.";
@@ -150,6 +155,38 @@ export function AnalysisResultDisplay({ result }: AnalysisResultProps) {
     (i) => i.severity === "warning",
   ).length;
   const potentialSavings = getPotentialSavings(result);
+
+  const stageTotals: Record<BillingStage, number> = {
+    provider: 0,
+    insurance: 0,
+    patient: 0,
+  };
+  detectedIssues.forEach((issue) => {
+    stageTotals[issueStage(issue.type)] += 1;
+  });
+
+  const highlightedStage: BillingStage =
+    stageTotals.provider >= stageTotals.insurance &&
+    stageTotals.provider >= stageTotals.patient
+      ? "provider"
+      : stageTotals.insurance >= stageTotals.patient
+        ? "insurance"
+        : "patient";
+
+  const [revealStage, setRevealStage] = useState(() => (progressive ? 1 : 4));
+
+  useEffect(() => {
+    if (!progressive) return;
+    const t1 = window.setTimeout(() => setRevealStage(2), 300);
+    const t2 = window.setTimeout(() => setRevealStage(3), 700);
+    const t3 = window.setTimeout(() => setRevealStage(4), 1100);
+
+    return () => {
+      window.clearTimeout(t1);
+      window.clearTimeout(t2);
+      window.clearTimeout(t3);
+    };
+  }, [progressive]);
 
   return (
     <div className="space-y-6">
@@ -205,45 +242,24 @@ export function AnalysisResultDisplay({ result }: AnalysisResultProps) {
         <CardContent>
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
             <Field label="Provider" value={extractedFields.provider} />
-            <Field
-              label="Provider Phone"
-              value={extractedFields.providerPhone}
-            />
-            <Field
-              label="Provider Email"
-              value={extractedFields.providerEmail}
-            />
+            <Field label="Provider Phone" value={extractedFields.providerPhone} />
+            <Field label="Provider Email" value={extractedFields.providerEmail} />
             <Field label="Insurer" value={extractedFields.insurer} />
             <Field label="Insurer Phone" value={extractedFields.insurerPhone} />
             <Field label="Insurer Email" value={extractedFields.insurerEmail} />
-            <Field
-              label="Service Date"
-              value={formatDate(extractedFields.serviceDate)}
-            />
+            <Field label="Service Date" value={formatDate(extractedFields.serviceDate)} />
             <Field label="Claim Number" value={extractedFields.claimNumber} />
             <Field label="Member ID" value={extractedFields.memberID} />
-            <Field
-              label="Billed Amount"
-              value={formatCurrency(extractedFields.billedAmount)}
-            />
-            <Field
-              label="Insurer Paid"
-              value={formatCurrency(extractedFields.insurerPaid)}
-            />
-            <Field
-              label="Your Responsibility"
-              value={formatCurrency(extractedFields.patientResponsibility)}
-              isHighlight
-            />
+            <Field label="Billed Amount" value={formatCurrency(extractedFields.billedAmount)} />
+            <Field label="Insurer Paid" value={formatCurrency(extractedFields.insurerPaid)} />
+            <Field label="Your Responsibility" value={formatCurrency(extractedFields.patientResponsibility)} isHighlight />
           </div>
 
           {extractedFields.cptCodes.length > 0 && (
             <>
               <Separator className="my-4" />
               <div>
-                <p className="mb-2 text-sm font-medium text-[var(--muted-foreground)]">
-                  CPT Codes
-                </p>
+                <p className="mb-2 text-sm font-medium text-[var(--muted-foreground)]">CPT Codes</p>
                 <div className="flex flex-wrap gap-2">
                   {extractedFields.cptCodes.map((code) => (
                     <Badge key={code} variant="outline" className="font-mono">
@@ -258,11 +274,7 @@ export function AnalysisResultDisplay({ result }: AnalysisResultProps) {
           {extractedFields.denialReason && (
             <>
               <Separator className="my-4" />
-              <Field
-                label="Denial Reason"
-                value={extractedFields.denialReason}
-                isFullWidth
-              />
+              <Field label="Denial Reason" value={extractedFields.denialReason} isFullWidth />
             </>
           )}
         </CardContent>
@@ -284,140 +296,173 @@ export function AnalysisResultDisplay({ result }: AnalysisResultProps) {
           ) : (
             <div className="space-y-3">
               {detectedIssues.map((issue, i) => (
-                <IssueCard
-                  key={i}
-                  issue={issue}
-                  potentialSavings={potentialSavings}
-                />
+                <IssueCard key={i} issue={issue} />
               ))}
             </div>
-          )}
-        </CardContent>
-      </Card>
+          </CardContent>
+        </Card>
+      ) : null}
 
-      {/* Section 3: Action Center */}
-      <Card className="shadow-none">
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <CheckIcon />
-            Action center
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          {recommendedActions.length === 0 ? (
-            <p className="text-sm text-[var(--muted-foreground)]">
-              No specific actions recommended.
-            </p>
-          ) : (
-            <ol className="mb-4 space-y-3">
-              {recommendedActions.map((action, i) => (
-                <li
-                  key={i}
-                  className="flex items-start gap-3 rounded-lg border border-[var(--border)] bg-slate-50 p-3"
-                >
-                  <span className="mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-slate-900 text-xs font-semibold text-white">
-                    {i + 1}
-                  </span>
-                  <div className="flex flex-col gap-2">
-                    <span
-                      className={`w-fit rounded-full border px-2.5 py-0.5 text-xs font-semibold ${CATEGORY_COLORS[action.category]}`}
-                    >
-                      {CATEGORY_LABELS[action.category]}
-                    </span>
-                    <p className="text-sm text-[var(--foreground)]">
-                      {action.action}
-                    </p>
-                  </div>
-                </li>
-              ))}
-            </ol>
-          )}
-
-          <div className="grid gap-3 md:grid-cols-3">
-            <ActionStub
-              title="Provider Dispute Email"
-              description="Draft a concise provider billing dispute with cited findings and requested corrections."
-            />
-            <ActionStub
-              title="Insurance Appeal Draft"
-              description="Prepare an appeal packet summary aligned with denial or responsibility mismatch findings."
-            />
-            <ActionStub
-              title="Billing Call Script"
-              description="Generate a call script with key points, questions, and escalation prompts."
-            />
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Section 4: Additional Details */}
-      <details className="rounded-lg border border-[var(--border)] bg-white">
-        <summary className="cursor-pointer list-none px-4 py-3 text-sm font-semibold text-slate-900">
-          Additional case details
-        </summary>
-        <div className="border-t border-[var(--border)] px-4 py-4">
-          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-            <Field label="Provider" value={extractedFields.provider} />
-            <Field label="Insurer" value={extractedFields.insurer} />
-            <Field
-              label="Service Date"
-              value={formatDate(extractedFields.serviceDate)}
-            />
-            <Field label="Claim Number" value={extractedFields.claimNumber} />
-            <Field label="Member ID" value={extractedFields.memberID} />
-            <Field
-              label="Billed Amount"
-              value={formatCurrency(extractedFields.billedAmount)}
-            />
-            <Field
-              label="Insurer Paid"
-              value={formatCurrency(extractedFields.insurerPaid)}
-            />
-            <Field
-              label="Patient Responsibility"
-              value={formatCurrency(extractedFields.patientResponsibility)}
-              isHighlight
-            />
-          </div>
-
-          {extractedFields.cptCodes.length > 0 && (
-            <>
-              <Separator className="my-4" />
-              <div>
-                <p className="mb-2 text-sm font-medium text-[var(--muted-foreground)]">
-                  CPT Codes
-                </p>
-                <div className="flex flex-wrap gap-2">
-                  {extractedFields.cptCodes.map((code) => (
-                    <Badge key={code} variant="outline" className="font-mono">
-                      {code}
-                    </Badge>
-                  ))}
-                </div>
+      {revealStage >= 3 ? (
+        <Card className="shadow-none">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <AlertIcon />
+              Issues detected
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            {detectedIssues.length === 0 ? (
+              <p className="text-sm text-[var(--muted-foreground)]">
+                No billing issues detected in this document.
+              </p>
+            ) : (
+              <div className="space-y-3">
+                {detectedIssues.map((issue, i) => (
+                  <IssueCard
+                    key={i}
+                    issue={issue}
+                    potentialSavings={potentialSavings}
+                  />
+                ))}
               </div>
-            </>
-          )}
+            )}
+          </CardContent>
+        </Card>
+      ) : null}
 
-          {extractedFields.denialReason && (
-            <>
+      {revealStage >= 4 ? (
+        <>
+          <Card className="shadow-none">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <CheckIcon />
+                Action center
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              {recommendedActions.length === 0 ? (
+                <p className="text-sm text-[var(--muted-foreground)]">
+                  No specific actions recommended.
+                </p>
+              ) : (
+                <ol className="mb-4 space-y-3">
+                  {recommendedActions.map((action, i) => (
+                    <li
+                      key={i}
+                      className="flex items-start gap-3 rounded-lg border border-[var(--border)] bg-slate-50 p-3"
+                    >
+                      <span className="mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-slate-900 text-xs font-semibold text-white">
+                        {i + 1}
+                      </span>
+                      <div className="flex flex-col gap-2">
+                        <span
+                          className={`w-fit rounded-full border px-2.5 py-0.5 text-xs font-semibold ${CATEGORY_COLORS[action.category]}`}
+                        >
+                          {CATEGORY_LABELS[action.category]}
+                        </span>
+                        <p className="text-sm text-[var(--foreground)]">
+                          {action.action}
+                        </p>
+                      </div>
+                    </li>
+                  ))}
+                </ol>
+              )}
+
+              <div className="grid gap-3 md:grid-cols-3">
+                <ActionStub
+                  title="Provider Dispute Email"
+                  description="Draft a concise provider billing dispute with cited findings and requested corrections."
+                />
+                <ActionStub
+                  title="Insurance Appeal Draft"
+                  description="Prepare an appeal packet summary aligned with denial or responsibility mismatch findings."
+                />
+                <ActionStub
+                  title="Billing Call Script"
+                  description="Generate a call script with key points, questions, and escalation prompts."
+                />
+              </div>
+            </CardContent>
+          </Card>
+
+          <details className="rounded-lg border border-[var(--border)] bg-white">
+            <summary className="cursor-pointer list-none px-4 py-3 text-sm font-semibold text-slate-900">
+              Additional case details
+            </summary>
+            <div className="border-t border-[var(--border)] px-4 py-4">
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                <Field label="Provider" value={extractedFields.provider} />
+                <Field label="Insurer" value={extractedFields.insurer} />
+                <Field
+                  label="Service Date"
+                  value={formatDate(extractedFields.serviceDate)}
+                />
+                <Field
+                  label="Claim Number"
+                  value={extractedFields.claimNumber}
+                />
+                <Field label="Member ID" value={extractedFields.memberID} />
+                <Field
+                  label="Billed Amount"
+                  value={formatCurrency(extractedFields.billedAmount)}
+                />
+                <Field
+                  label="Insurer Paid"
+                  value={formatCurrency(extractedFields.insurerPaid)}
+                />
+                <Field
+                  label="Patient Responsibility"
+                  value={formatCurrency(extractedFields.patientResponsibility)}
+                  isHighlight
+                />
+              </div>
+
+              {extractedFields.cptCodes.length > 0 && (
+                <>
+                  <Separator className="my-4" />
+                  <div>
+                    <p className="mb-2 text-sm font-medium text-[var(--muted-foreground)]">
+                      CPT Codes
+                    </p>
+                    <div className="flex flex-wrap gap-2">
+                      {extractedFields.cptCodes.map((code) => (
+                        <Badge
+                          key={code}
+                          variant="outline"
+                          className="font-mono"
+                        >
+                          {code}
+                        </Badge>
+                      ))}
+                    </div>
+                  </div>
+                </>
+              )}
+
+              {extractedFields.denialReason && (
+                <>
+                  <Separator className="my-4" />
+                  <Field
+                    label="Denial Reason"
+                    value={extractedFields.denialReason}
+                    isFullWidth
+                  />
+                </>
+              )}
+
               <Separator className="my-4" />
-              <Field
-                label="Denial Reason"
-                value={extractedFields.denialReason}
-                isFullWidth
-              />
-            </>
-          )}
-
-          <Separator className="my-4" />
-          <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
-            Case explanation
-          </p>
-          <p className="mt-2 text-sm leading-relaxed text-[var(--foreground)]">
-            {explanation}
-          </p>
-        </div>
-      </details>
+              <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+                Case explanation
+              </p>
+              <p className="mt-2 text-sm leading-relaxed text-[var(--foreground)]">
+                {explanation}
+              </p>
+            </div>
+          </details>
+        </>
+      ) : null}
     </div>
   );
 }
@@ -444,6 +489,44 @@ function SummaryCard({
         {value}
       </p>
       <p className="mt-1 text-xs text-slate-600">{subtext}</p>
+    </div>
+  );
+}
+
+function FlowNode({
+  title,
+  count,
+  active,
+  tone,
+}: {
+  title: string;
+  count: number;
+  active: boolean;
+  tone: "blue" | "slate" | "amber";
+}) {
+  const toneClasses =
+    tone === "blue"
+      ? "border-blue-200"
+      : tone === "amber"
+        ? "border-amber-200"
+        : "border-slate-300";
+
+  return (
+    <div
+      className={`rounded-lg border bg-white p-3 ${toneClasses} ${active ? "ring-1 ring-slate-300" : ""}`}
+    >
+      <p className="text-sm font-semibold text-slate-900">{title}</p>
+      <p className="mt-1 text-sm text-slate-600">
+        {count} issue{count === 1 ? "" : "s"}
+      </p>
+    </div>
+  );
+}
+
+function FlowArrow() {
+  return (
+    <div className="hidden items-center justify-center text-slate-400 md:flex">
+      →
     </div>
   );
 }
@@ -530,24 +613,6 @@ function IssueCard({
   );
 }
 
-function DocumentIcon() {
-  return (
-    <svg
-      className="h-5 w-5 text-slate-600"
-      fill="none"
-      viewBox="0 0 24 24"
-      stroke="currentColor"
-    >
-      <path
-        strokeLinecap="round"
-        strokeLinejoin="round"
-        strokeWidth={2}
-        d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
-      />
-    </svg>
-  );
-}
-
 function AlertIcon() {
   return (
     <svg
@@ -579,6 +644,24 @@ function CheckIcon() {
         strokeLinejoin="round"
         strokeWidth={2}
         d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"
+      />
+    </svg>
+  );
+}
+
+function FlowIcon() {
+  return (
+    <svg
+      className="h-5 w-5 text-slate-600"
+      fill="none"
+      viewBox="0 0 24 24"
+      stroke="currentColor"
+    >
+      <path
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        strokeWidth={2}
+        d="M13 10V3L4 14h7v7l9-11h-7z"
       />
     </svg>
   );
