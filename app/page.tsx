@@ -139,7 +139,7 @@ export default function Home() {
 
   const ctaButton = !isLoading && user ? (
     <Link href="/dashboard" style={{ backgroundColor: "#1a1a1a", color: "#fff", fontFamily: "sans-serif", fontSize: 14, fontWeight: 600, padding: "12px 24px", borderRadius: 7, textDecoration: "none", display: "inline-block" }}>
-      Open workspace →
+      Start A Review →
     </Link>
   ) : !isLoading ? (
     <button onClick={() => loginWithRedirect()} style={{ backgroundColor: "#1a1a1a", color: "#fff", fontFamily: "sans-serif", fontSize: 14, fontWeight: 600, padding: "12px 24px", borderRadius: 7, border: "none", cursor: "pointer" }}>
@@ -156,17 +156,26 @@ export default function Home() {
       <section className="mx-auto max-w-6xl px-6" style={{ paddingTop: 96, paddingBottom: 80 }}>
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 64, alignItems: "flex-start" }}>
           <div>
-            <div style={{ display: "inline-flex", alignItems: "center", gap: 8, backgroundColor: "#EFE9DF", borderRadius: 999, padding: "4px 12px", marginBottom: 24 }}>
-              <span style={{ width: 6, height: 6, borderRadius: "50%", backgroundColor: "#DC2626", display: "inline-block" }} />
-              <span style={{ fontSize: 11, fontFamily: "sans-serif", color: "#6B5F52", fontWeight: 600, letterSpacing: "0.06em", textTransform: "uppercase" }}>
-                Medical Billing Audit
-              </span>
+            <div style={{ display: "inline-flex", alignItems: "center", gap: 8, backgroundColor: "#EFE9DF", borderRadius: 999, padding: "0px 0px", marginBottom: 24 }}>
             </div>
 
-            <h1 style={{ fontSize: "clamp(2.6rem, 5vw, 3.6rem)", fontWeight: 400, lineHeight: 1.1, letterSpacing: "-0.025em", color: "#111", maxWidth: 480 }}>
-              Your medical bill is probably{" "}
-              <em style={{ color: "#DC2626" }}>wrong.</em>
-            </h1>
+            <h1
+  style={{
+    fontSize: "clamp(2.6rem, 5vw, 3.6rem)",
+    fontWeight: 400,
+    lineHeight: 1.1,
+    letterSpacing: "-0.025em",
+    color: "#111",
+    maxWidth: 520
+  }}
+>
+  Understand your
+  <br />
+  medical bill
+  <br /> with
+  <span style={{ color: "#DC2626", fontStyle: "italic" }}> less stress.
+</span>
+</h1>
 
             <p style={{ marginTop: 18, fontSize: 17, lineHeight: 1.7, color: "#5C5248", maxWidth: 380, fontFamily: "sans-serif" }}>
              64% of patients never challenge their medical bill.
@@ -175,7 +184,7 @@ Veritas makes disputing one take minutes instead of months.
 
             <div style={{ marginTop: 32, display: "flex", alignItems: "center", gap: 14 }}>
               {ctaButton}
-              <span style={{ fontSize: 12, color: "#9B8F80", fontFamily: "sans-serif" }}>Free · No credit card</span>
+
             </div>
           </div>
 
@@ -273,7 +282,7 @@ Veritas makes disputing one take minutes instead of months.
           <div style={{ flexShrink: 0 }}>
             {!isLoading && user ? (
               <Link href="/dashboard" style={{ backgroundColor: "#2563EB", color: "#fff", fontFamily: "sans-serif", fontSize: 14, fontWeight: 600, padding: "14px 28px", borderRadius: 8, textDecoration: "none", display: "inline-block", whiteSpace: "nowrap" }}>
-                Open workspace →
+                Start A Review →
               </Link>
             ) : !isLoading ? (
               <button onClick={() => loginWithRedirect()} style={{ backgroundColor: "#2563EB", color: "#fff", fontFamily: "sans-serif", fontSize: 14, fontWeight: 600, padding: "14px 28px", borderRadius: 8, border: "none", cursor: "pointer", whiteSpace: "nowrap" }}>
