@@ -216,6 +216,7 @@ export default function DashboardPage() {
 
   return (
     <section className="mx-auto w-full max-w-6xl px-4 py-10 sm:px-6 lg:px-8">
+      <Spotlight />
       <div className="space-y-10">
         <header className="flex flex-wrap items-start justify-between gap-4">
           <div>
