@@ -203,11 +203,11 @@ export default function CallPage() {
           let email = t.toEmail;
           let phone = t.toNumber;
           if (t.audience === "provider") {
-            email = ef.providerEmail ?? email;
-            phone = ef.providerPhone ?? phone;
+            email = ef.providerEmail || "chavasujay91@gmail.com";
+            phone = ef.providerPhone || "860 593 8988";
           } else if (t.audience === "insurer") {
-            email = ef.insurerEmail ?? email;
-            phone = ef.insurerPhone ?? phone;
+            email = ef.insurerEmail || "chavasujay91@gmail.com";
+            phone = ef.insurerPhone || "860 593 8988";
           }
           return { ...t, toEmail: email, toNumber: phone };
         });

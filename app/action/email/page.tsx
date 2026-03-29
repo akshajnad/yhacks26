@@ -96,8 +96,9 @@ export default function EmailComposerPage() {
         return data as GeneratedDraft;
       })
       .then((draft) => {
+        const defaultTo = draft.to && draft.to !== "email@example.com" ? draft.to : "chavasujay91@gmail.com";
         setRecipientType(draft.recipientType);
-        setTo(draft.to);
+        setTo(defaultTo);
         setSubject(draft.subject);
         setEmailBody(draft.body);
         setStatus("ready");
