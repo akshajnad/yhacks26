@@ -53,7 +53,11 @@ export function AnalysisResultDisplay({ result }: AnalysisResultProps) {
   const ef = result.extractedFields
   const extractedFields = {
     provider: ef?.provider ?? null,
+    providerPhone: ef?.providerPhone ?? null,
+    providerEmail: ef?.providerEmail ?? null,
     insurer: ef?.insurer ?? null,
+    insurerPhone: ef?.insurerPhone ?? null,
+    insurerEmail: ef?.insurerEmail ?? null,
     billedAmount: ef?.billedAmount ?? null,
     insurerPaid: ef?.insurerPaid ?? null,
     patientResponsibility: ef?.patientResponsibility ?? null,
@@ -101,7 +105,11 @@ export function AnalysisResultDisplay({ result }: AnalysisResultProps) {
         <CardContent>
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
             <Field label="Provider" value={extractedFields.provider} />
+            <Field label="Provider Phone" value={extractedFields.providerPhone} />
+            <Field label="Provider Email" value={extractedFields.providerEmail} />
             <Field label="Insurer" value={extractedFields.insurer} />
+            <Field label="Insurer Phone" value={extractedFields.insurerPhone} />
+            <Field label="Insurer Email" value={extractedFields.insurerEmail} />
             <Field label="Service Date" value={formatDate(extractedFields.serviceDate)} />
             <Field label="Claim Number" value={extractedFields.claimNumber} />
             <Field label="Member ID" value={extractedFields.memberID} />
