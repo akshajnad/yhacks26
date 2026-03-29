@@ -19,9 +19,6 @@ export function AppHeader() {
           className="text-[30px] font-semibold tracking-[-0.02em] text-slate-900 transition-opacity hover:opacity-75"
         >
           <span>Veritas</span>
-          <span className="hidden text-xs font-medium text-slate-500 sm:inline">
-            Medical Billing Audit
-          </span>
         </Link>
 
         <nav className="flex items-center gap-2 sm:gap-3">
