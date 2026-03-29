@@ -51,10 +51,13 @@ function normalizeResponse(parsed: any): {
     explanation: parsed.explanation ?? "No explanation provided.",
     recommendedActions: Array.isArray(parsed.recommendedActions) ? parsed.recommendedActions : [],
     laws: Array.isArray(parsed.laws)
-      ? parsed.laws.slice(0, 3).map((l: any) => ({
-          title: l.title ?? "Unknown Law",
-          description: l.description ?? "",
-        }))
+      ? parsed.laws.slice(0, 3).map((law: unknown) => {
+          const l = (law ?? {}) as { title?: string; description?: string }
+          return {
+            title: l.title ?? "Unknown Law",
+            description: l.description ?? "",
+          }
+        })
       : [],
   }
 }
