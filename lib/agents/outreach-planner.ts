@@ -15,6 +15,7 @@ import type {
   PatientContext,
   DocumentContext,
   OutreachToneGuidance,
+  LegalGroundingEntry,
 } from "@/types/outreach"
 
 // ── Contact target resolution ─────────────────────────────────────────────────
@@ -194,7 +195,7 @@ export async function planOutreach(input: {
   const missingFields = detectMissingFields(analysis, contactTargets)
 
   // Legal grounding — gracefully degrades to [] on failure
-  let legalGrounding = []
+  let legalGrounding: LegalGroundingEntry[] = []
   try {
     legalGrounding = await getLegalGrounding({ analysis })
   } catch (err) {
