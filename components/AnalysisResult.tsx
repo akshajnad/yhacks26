@@ -6,7 +6,6 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
-import { ActionCenter } from "@/components/ActionCenter";
 import type {
   AnalysisResult,
   ActionCategory,
@@ -127,8 +126,6 @@ export function AnalysisResultDisplay({
   result,
   progressive,
 }: AnalysisResultProps) {
-  // Fix: declare the missing state that was used but never defined
-  const [showActionCenter, setShowActionCenter] = useState(false);
 
   const caseId = result.caseId ?? "unknown";
   const analyzedAt = result.analyzedAt ?? new Date().toISOString();
@@ -367,37 +364,25 @@ export function AnalysisResultDisplay({
                 Call Providers
               </p>
               <p className="mt-2 text-sm leading-6 text-slate-600">
-                Prepare and place guided provider calls based on detected
-                issues.
+                Review your personalized call script and instantly dispatch an automated dispute call via ElevenLabs.
               </p>
-              {!showActionCenter ? (
-                <Button
-                  onClick={() => setShowActionCenter(true)}
-                  className="mt-3 w-full gap-2 bg-blue-600 text-white hover:bg-blue-700"
+              <Button
+                asChild
+                className="mt-3 w-full gap-2 bg-blue-600 text-white hover:bg-blue-700"
+              >
+                <Link
+                  href={`/action/call?caseId=${encodeURIComponent(caseId)}`}
+                  target="_blank"
+                  rel="noreferrer"
                 >
                   <LightningIcon />
-                  Take Action
-                </Button>
-              ) : (
-                <Button
-                  onClick={() => setShowActionCenter(false)}
-                  variant="outline"
-                  className="mt-3 w-full"
-                >
-                  Hide Action Center
-                </Button>
-              )}
+                  Place call
+                </Link>
+              </Button>
             </div>
           </div>
         </CardContent>
       </Card>
-
-      {showActionCenter && (
-        <ActionCenter
-          analysis={result}
-          onClose={() => setShowActionCenter(false)}
-        />
-      )}
 
       {/* Section 4: Relevant Legal Protections */}
       {(result.laws ?? []).length > 0 && (
