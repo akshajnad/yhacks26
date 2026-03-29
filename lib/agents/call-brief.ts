@@ -140,14 +140,15 @@ export async function generateCallBrief(req: CallBriefRequest): Promise<CallBrie
 
   const normalized = normalizeCallBrief(parsed)
 
+  const ef = brief.analysis.extractedFields
   return {
     caseId: brief.caseId,
     targetId,
     ...normalized,
     referenceNumbers: {
-      memberID: brief.patientContext.memberID ?? null,
-      claimNumber: brief.patientContext.claimNumber ?? null,
-      accountNumber: brief.patientContext.accountNumber ?? null,
+      memberID: brief.patientContext.memberID ?? ef.memberID ?? null,
+      claimNumber: brief.patientContext.claimNumber ?? ef.claimNumber ?? null,
+      accountNumber: brief.patientContext.accountNumber ?? ef.accountNumber ?? null,
     },
     generatedAt: new Date().toISOString(),
   }

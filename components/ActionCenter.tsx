@@ -26,6 +26,107 @@ interface ContactInfoOverrides {
   }
 }
 
+// Human-readable labels for missing field keys
+const MISSING_FIELD_LABELS: Record<string, string> = {
+  patientName: "Patient Full Name",
+  memberID: "Insurance Member ID",
+  "claimNumber / accountNumber": "Claim or Account Number",
+  claimNumber: "Claim Number",
+  accountNumber: "Account Number",
+  serviceDate: "Date of Service",
+  billIssueDate: "Bill Issue Date",
+  locationOfCare: "Location of Care",
+  patientAddress: "Patient Address",
+  providerAddress: "Provider Address / Mailing Address",
+  insurerAddress: "Insurer Address / Mailing Address",
+  "provider.toEmail": "Provider Billing Email",
+  "provider.toNumber": "Provider Billing Phone",
+  "provider.address": "Provider Mailing Address",
+  "insurer.toEmail": "Insurer Appeals Email",
+  "insurer.toNumber": "Insurer Customer Service Phone",
+  "insurer.address": "Insurer Mailing Address",
+}
+
+/** Editable case fields (same keys as merged into briefWithOverrides). */
+const CASE_DETAIL_FIELDS: { key: string; label: string }[] = [
+  { key: "patientName", label: "Patient full name" },
+  { key: "memberID", label: "Member / subscriber ID" },
+  { key: "claimNumber", label: "Claim number" },
+  { key: "accountNumber", label: "Account / billing number" },
+  { key: "serviceDate", label: "Date of service" },
+  { key: "billIssueDate", label: "Bill issue date" },
+  { key: "locationOfCare", label: "Location of care" },
+  { key: "patientAddress", label: "Patient mailing address" },
+]
+
+function getCaseFieldValue(brief: OutreachBrief, key: string): string {
+  const ef = brief.analysis.extractedFields
+  const pc = brief.patientContext
+  const dc = brief.documentContext
+  switch (key) {
+    case "patientName":
+      return (pc.fullName ?? ef.patientName ?? "").trim()
+    case "memberID":
+      return (pc.memberID ?? ef.memberID ?? "").trim()
+    case "claimNumber":
+      return (pc.claimNumber ?? ef.claimNumber ?? "").trim()
+    case "accountNumber":
+      return (pc.accountNumber ?? ef.accountNumber ?? "").trim()
+    case "serviceDate":
+      return (dc.serviceDate ?? ef.serviceDate ?? "").trim()
+    case "billIssueDate":
+      return (dc.billIssueDate ?? ef.billIssueDate ?? "").trim()
+    case "locationOfCare":
+      return (dc.locationOfCare ?? ef.locationOfCare ?? "").trim()
+    case "patientAddress":
+      return (pc.address ?? ef.patientAddress ?? "").trim()
+    default:
+      return ""
+  }
+}
+
+/** Always-visible inputs for patient / document IDs — use on Email and Call Brief tabs. */
+function CaseDetailsEditor({
+  brief,
+  values,
+  onChange,
+  idPrefix = "case",
+}: {
+  brief: OutreachBrief
+  values: Record<string, string>
+  onChange: (field: string, value: string) => void
+  idPrefix?: string
+}) {
+  return (
+    <div className="rounded-lg border border-slate-200 bg-slate-50/80 p-4">
+      <p className="text-sm font-semibold text-slate-900">Case &amp; account details</p>
+      <p className="mt-0.5 text-xs text-slate-600">
+        Edit or add IDs and dates before generating. These values update emails, call brief, and ElevenLabs payloads.
+      </p>
+      <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2">
+        {CASE_DETAIL_FIELDS.map(({ key, label }) => {
+          const inputId = `${idPrefix}-${key}`
+          return (
+            <div key={key}>
+              <label className="block text-xs font-medium text-slate-700" htmlFor={inputId}>
+                {label}
+              </label>
+              <input
+                id={inputId}
+                type="text"
+                className="mt-1 w-full rounded-md border border-[var(--border)] bg-white px-2.5 py-1.5 text-sm text-slate-900 placeholder:text-slate-400 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                placeholder={getCaseFieldValue(brief, key) ? undefined : `Enter ${label.toLowerCase()}`}
+                value={values[key] !== undefined ? values[key] : getCaseFieldValue(brief, key)}
+                onChange={(e) => onChange(key, e.target.value)}
+              />
+            </div>
+          )
+        })}
+      </div>
+    </div>
+  )
+}
+
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
 function CopyButton({ text }: { text: string }) {
@@ -104,6 +205,57 @@ function MissingFieldsWarning({ fields }: { fields: string[] }) {
   )
 }
 
+// Interactive form for filling in missing patient/document fields
+function MissingFieldsForm({
+  missingFields,
+  values,
+  onChange,
+}: {
+  missingFields: string[]
+  values: Record<string, string>
+  onChange: (field: string, value: string) => void
+}) {
+  // Only show patient/document fields here (contact fields are handled in ContactTargetCard)
+  const patientDocFields = missingFields.filter(
+    (f) => !f.includes(".toEmail") && !f.includes(".toNumber") && !f.includes(".address")
+  )
+  if (patientDocFields.length === 0) return null
+
+  return (
+    <div className="rounded-lg border border-amber-200 bg-amber-50 p-4">
+      <div className="mb-3 flex items-center gap-2">
+        <svg className="h-4 w-4 shrink-0 text-amber-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+        </svg>
+        <div>
+          <p className="text-sm font-semibold text-amber-900">
+            {patientDocFields.length} missing field{patientDocFields.length !== 1 ? "s" : ""}
+          </p>
+          <p className="text-xs text-amber-700">
+            Fill these in to improve generated drafts and call scripts.
+          </p>
+        </div>
+      </div>
+      <div className="space-y-2">
+        {patientDocFields.map((field) => (
+          <div key={field}>
+            <label className="block text-xs font-medium text-amber-800">
+              {MISSING_FIELD_LABELS[field] ?? field}
+            </label>
+            <input
+              type="text"
+              placeholder={`Enter ${MISSING_FIELD_LABELS[field] ?? field}`}
+              value={values[field] ?? ""}
+              onChange={(e) => onChange(field, e.target.value)}
+              className="mt-0.5 w-full rounded border border-amber-300 bg-white px-2.5 py-1.5 text-sm text-slate-800 placeholder-slate-400 focus:border-amber-500 focus:outline-none focus:ring-1 focus:ring-amber-400"
+            />
+          </div>
+        ))}
+      </div>
+    </div>
+  )
+}
+
 function NoGroundingWarning() {
   return (
     <div className="flex items-center gap-2 rounded-md border border-amber-200 bg-amber-50 px-3 py-2">
@@ -123,10 +275,14 @@ function OutreachPlanTab({
   brief,
   overrides,
   onOverrideChange,
+  missingFieldValues,
+  onMissingFieldChange,
 }: {
   brief: OutreachBrief
   overrides: ContactInfoOverrides
   onOverrideChange: (targetId: string, field: "toEmail" | "toNumber", value: string) => void
+  missingFieldValues: Record<string, string>
+  onMissingFieldChange: (field: string, value: string) => void
 }) {
   const hasGrounding = brief.legalGrounding.some((g) => g.confidence === "grounded")
 
@@ -241,8 +397,13 @@ function OutreachPlanTab({
         </CardContent>
       </Card>
 
+      {/* Missing fields input form */}
       {brief.missingFields.length > 0 && (
-        <MissingFieldsWarning fields={brief.missingFields} />
+        <MissingFieldsForm
+          missingFields={brief.missingFields}
+          values={missingFieldValues}
+          onChange={onMissingFieldChange}
+        />
       )}
     </div>
   )
@@ -326,6 +487,9 @@ function EmailDraftTab({
   error,
   onGenerate,
   onDismissError,
+  caseDetailValues,
+  onCaseDetailChange,
+  onContactOverride,
 }: {
   brief: OutreachBrief
   overrides: ContactInfoOverrides
@@ -335,6 +499,9 @@ function EmailDraftTab({
   error: string | null
   onGenerate: (targetId: string) => void
   onDismissError: () => void
+  caseDetailValues: Record<string, string>
+  onCaseDetailChange: (field: string, value: string) => void
+  onContactOverride: (targetId: string, field: "toEmail" | "toNumber", value: string) => void
 }) {
   const audience = draftType === "provider_dispute" ? "provider" : "insurer"
   const target = brief.contactTargets.find((t) => t.audience === audience)
@@ -348,10 +515,55 @@ function EmailDraftTab({
   }
 
   const effectiveEmail = overrides[target.id]?.toEmail ?? target.toEmail
+  const idPrefix = draftType === "provider_dispute" ? "email-provider" : "email-insurer"
 
   return (
     <div className="space-y-4">
       {error && <ErrorBanner message={error} onDismiss={onDismissError} />}
+
+      <CaseDetailsEditor
+        brief={brief}
+        values={caseDetailValues}
+        onChange={onCaseDetailChange}
+        idPrefix={idPrefix}
+      />
+
+      <div className="rounded-lg border border-slate-200 bg-white p-4">
+        <p className="text-sm font-semibold text-slate-900">Recipient contact</p>
+        <p className="mt-0.5 text-xs text-slate-600">
+          Optional — used in the draft header. Not sent automatically.
+        </p>
+        <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2">
+          <div>
+            <label className="block text-xs font-medium text-slate-700" htmlFor={`${idPrefix}-toEmail`}>
+              Email
+            </label>
+            <input
+              id={`${idPrefix}-toEmail`}
+              type="email"
+              autoComplete="email"
+              className="mt-1 w-full rounded-md border border-[var(--border)] px-2.5 py-1.5 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+              placeholder="billing@hospital.org"
+              value={overrides[target.id]?.toEmail ?? target.toEmail ?? ""}
+              onChange={(e) => onContactOverride(target.id, "toEmail", e.target.value)}
+            />
+          </div>
+          <div>
+            <label className="block text-xs font-medium text-slate-700" htmlFor={`${idPrefix}-toNumber`}>
+              Phone
+            </label>
+            <input
+              id={`${idPrefix}-toNumber`}
+              type="tel"
+              autoComplete="tel"
+              className="mt-1 w-full rounded-md border border-[var(--border)] px-2.5 py-1.5 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+              placeholder="+1 …"
+              value={overrides[target.id]?.toNumber ?? target.toNumber ?? ""}
+              onChange={(e) => onContactOverride(target.id, "toNumber", e.target.value)}
+            />
+          </div>
+        </div>
+      </div>
 
       <div className="flex items-center justify-between">
         <div>
@@ -438,6 +650,9 @@ function CallBriefTab({
   error,
   onGenerate,
   onDismissError,
+  caseDetailValues,
+  onCaseDetailChange,
+  onContactOverride,
 }: {
   brief: OutreachBrief
   overrides: ContactInfoOverrides
@@ -446,6 +661,9 @@ function CallBriefTab({
   error: string | null
   onGenerate: (targetId: string) => void
   onDismissError: () => void
+  caseDetailValues: Record<string, string>
+  onCaseDetailChange: (field: string, value: string) => void
+  onContactOverride: (targetId: string, field: "toEmail" | "toNumber", value: string) => void
 }) {
   // Prefer provider target for calls; fall back to first target
   const target =
@@ -466,6 +684,45 @@ function CallBriefTab({
   return (
     <div className="space-y-4">
       {error && <ErrorBanner message={error} onDismiss={onDismissError} />}
+
+      <CaseDetailsEditor
+        brief={brief}
+        values={caseDetailValues}
+        onChange={onCaseDetailChange}
+        idPrefix="call-brief"
+      />
+
+      <div className="rounded-lg border border-slate-200 bg-white p-4">
+        <p className="text-sm font-semibold text-slate-900">Call destination</p>
+        <p className="mt-0.5 text-xs text-slate-600">Phone used for ElevenLabs outbound call and script context.</p>
+        <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2">
+          <div>
+            <label className="block text-xs font-medium text-slate-700" htmlFor="call-brief-toNumber">
+              Phone
+            </label>
+            <input
+              id="call-brief-toNumber"
+              type="tel"
+              className="mt-1 w-full rounded-md border border-[var(--border)] px-2.5 py-1.5 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+              placeholder="+1 …"
+              value={overrides[target.id]?.toNumber ?? target.toNumber ?? ""}
+              onChange={(e) => onContactOverride(target.id, "toNumber", e.target.value)}
+            />
+          </div>
+          <div>
+            <label className="block text-xs font-medium text-slate-700" htmlFor="call-brief-toEmail">
+              Email (optional)
+            </label>
+            <input
+              id="call-brief-toEmail"
+              type="email"
+              className="mt-1 w-full rounded-md border border-[var(--border)] px-2.5 py-1.5 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+              value={overrides[target.id]?.toEmail ?? target.toEmail ?? ""}
+              onChange={(e) => onContactOverride(target.id, "toEmail", e.target.value)}
+            />
+          </div>
+        </div>
+      </div>
 
       <div className="flex items-center justify-between">
         <div>
@@ -584,6 +841,7 @@ function ElevenLabsTab({
   error,
   onGenerate,
   onDismissError,
+  onPlaceCall,
 }: {
   brief: OutreachBrief
   callBrief: CallBriefResponse | null
@@ -592,11 +850,43 @@ function ElevenLabsTab({
   error: string | null
   onGenerate: (targetId: string) => void
   onDismissError: () => void
+  onPlaceCall: () => void
 }) {
+  const [callLoading, setCallLoading] = useState(false)
+  const [callError, setCallError] = useState<string | null>(null)
+  const [callSuccess, setCallSuccess] = useState<{ toNumber: string } | null>(null)
+
   const target =
     brief.contactTargets.find((t) => t.audience === "provider") ??
     brief.contactTargets[0] ??
     null
+
+  const handlePlaceCall = useCallback(async () => {
+    if (!payload) return
+    setCallLoading(true)
+    setCallError(null)
+    setCallSuccess(null)
+    try {
+      const res = await fetch("/api/outreach/elevenlabs/call", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ payload }),
+      })
+      const data = await res.json()
+      if (!res.ok) {
+        const detail = typeof data.detail === "object"
+          ? JSON.stringify(data.detail)
+          : String(data.detail ?? "")
+        throw new Error(`${data.error ?? "Call failed"}${detail ? ` — ${detail}` : ""}${data.hint ? ` (${data.hint})` : ""}`)
+      }
+      setCallSuccess({ toNumber: data.toNumber })
+      onPlaceCall()
+    } catch (err) {
+      setCallError(err instanceof Error ? err.message : String(err))
+    } finally {
+      setCallLoading(false)
+    }
+  }, [payload, onPlaceCall])
 
   if (!callBrief) {
     return (
@@ -607,6 +897,8 @@ function ElevenLabsTab({
   }
 
   if (!target) return null
+
+  const hasPhone = Boolean(payload?.recipient.toNumber)
 
   return (
     <div className="space-y-4">
@@ -647,6 +939,7 @@ function ElevenLabsTab({
 
       {payload && !loading && (
         <div className="space-y-3">
+          {/* Mode badge */}
           <div className="flex flex-wrap gap-2">
             <Badge
               variant={payload.mode === "conversation_config" ? "secondary" : "outline"}
@@ -661,6 +954,99 @@ function ElevenLabsTab({
             )}
           </div>
 
+          {/* ── Place Call section ── */}
+          <div className="rounded-lg border border-green-200 bg-green-50 p-4">
+            <div className="mb-3 flex items-start justify-between gap-3">
+              <div>
+                <p className="text-sm font-semibold text-green-900">Place Outbound Call</p>
+                <p className="mt-0.5 text-xs text-green-700">
+                  {hasPhone
+                    ? `Will call ${payload.recipient.toNumber} via your ElevenLabs agent`
+                    : "Enter a phone number in the Outreach Plan tab → Contact Targets first"}
+                </p>
+              </div>
+              <Button
+                size="sm"
+                onClick={handlePlaceCall}
+                disabled={callLoading || !hasPhone || payload.mode === "preview"}
+                className="shrink-0 gap-1.5 bg-green-700 text-white hover:bg-green-800 disabled:opacity-50"
+              >
+                {callLoading ? (
+                  <>
+                    <svg className="h-3 w-3 animate-spin" fill="none" viewBox="0 0 24 24">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                    </svg>
+                    Calling…
+                  </>
+                ) : (
+                  <>
+                    <PhoneIcon />
+                    Place Call
+                  </>
+                )}
+              </Button>
+            </div>
+
+            {payload.mode === "preview" && (
+              <p className="text-xs text-amber-700">
+                <span className="font-semibold">Preview mode:</span> Set{" "}
+                <code className="rounded bg-amber-100 px-1 font-mono">ELEVENLABS_API_KEY</code>,{" "}
+                <code className="rounded bg-amber-100 px-1 font-mono">ELEVENLABS_AGENT_ID</code>, and{" "}
+                <code className="rounded bg-amber-100 px-1 font-mono">ELEVENLABS_AGENT_PHONE_NUMBER_ID</code>{" "}
+                in your <code className="rounded bg-amber-100 px-1 font-mono">.env.local</code> to enable live calling.
+              </p>
+            )}
+
+            {payload.mode === "conversation_config" && (
+              <div className="mt-2 space-y-2 border-t border-green-200 pt-2 text-xs text-green-800">
+                <p>
+                  <span className="font-semibold">Locked agent (recommended):</span> The API sends{" "}
+                  <code className="rounded bg-white px-1 font-mono text-green-900">dynamic_variables</code> only. In
+                  ElevenLabs, register variables and use{" "}
+                  <code className="rounded bg-white px-1 font-mono">{"{{opening_script}}"}</code> for the first line and{" "}
+                  <code className="rounded bg-white px-1 font-mono">{"{{system_prompt}}"}</code> for instructions.
+                </p>
+                <p>
+                  <span className="font-semibold">If the model ignores individual IDs:</span> set the system prompt to{" "}
+                  <code className="rounded bg-white px-1 font-mono">{"{{medbill_context}}"}</code> — it includes member ID,
+                  claim #, account #, and amounts in one block. You can also use{" "}
+                  <code className="rounded bg-white px-1 font-mono">{"{{reference_numbers_summary}}"}</code>.
+                </p>
+                <p className="text-green-700">
+                  Variables are not “extracted” from JSON by the agent automatically; they must appear in your agent
+                  template as <code className="font-mono">{"{{variable_name}}"}</code> placeholders.
+                </p>
+              </div>
+            )}
+
+            {callError && (
+              <div className="mt-2 flex items-start gap-2 rounded-md border border-red-200 bg-red-50 px-3 py-2">
+                <svg className="mt-0.5 h-3.5 w-3.5 shrink-0 text-red-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+                <p className="text-xs text-red-700">{callError}</p>
+                <button onClick={() => setCallError(null)} className="ml-auto shrink-0 text-red-400 hover:text-red-600">
+                  <svg className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
+            )}
+
+            {callSuccess && (
+              <div className="mt-2 flex items-center gap-2 rounded-md border border-green-300 bg-green-100 px-3 py-2">
+                <svg className="h-4 w-4 shrink-0 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                </svg>
+                <p className="text-xs font-medium text-green-800">
+                  Call initiated to {callSuccess.toNumber}. The agent will call shortly.
+                </p>
+              </div>
+            )}
+          </div>
+
+          {/* First message */}
           <div className="rounded-lg border border-[var(--border)] bg-slate-50 p-4">
             <div className="mb-2 flex items-center justify-between">
               <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
@@ -671,6 +1057,7 @@ function ElevenLabsTab({
             <p className="text-sm leading-relaxed text-slate-800">{payload.conversation.firstMessage}</p>
           </div>
 
+          {/* System prompt */}
           <div className="rounded-lg border border-[var(--border)] bg-slate-50 p-4">
             <div className="mb-2 flex items-center justify-between">
               <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
@@ -741,6 +1128,13 @@ export function ActionCenter({ analysis, onClose }: ActionCenterProps) {
   // Contact info overrides (user-entered email/phone)
   const [overrides, setOverrides] = useState<ContactInfoOverrides>({})
 
+  // User-supplied values for missing patient/document fields
+  const [missingFieldValues, setMissingFieldValues] = useState<Record<string, string>>({})
+
+  const handleMissingFieldChange = useCallback((field: string, value: string) => {
+    setMissingFieldValues((prev) => ({ ...prev, [field]: value }))
+  }, [])
+
   // Email drafts
   const [providerDraft, setProviderDraft] = useState<EmailDraftResponse | null>(null)
   const [providerDraftLoading, setProviderDraftLoading] = useState(false)
@@ -799,7 +1193,7 @@ export function ActionCenter({ analysis, onClose }: ActionCenterProps) {
     []
   )
 
-  // Apply overrides to brief before passing to generators
+  // Apply contact overrides + missing field values to brief before passing to generators
   const briefWithOverrides = brief
     ? {
         ...brief,
@@ -808,6 +1202,49 @@ export function ActionCenter({ analysis, onClose }: ActionCenterProps) {
           toEmail: overrides[t.id]?.toEmail ?? t.toEmail,
           toNumber: overrides[t.id]?.toNumber ?? t.toNumber,
         })),
+        patientContext: {
+          ...brief.patientContext,
+          fullName: missingFieldValues["patientName"] ?? brief.patientContext.fullName,
+          memberID: missingFieldValues["memberID"] ?? brief.patientContext.memberID,
+          claimNumber:
+            missingFieldValues["claimNumber"] ??
+            missingFieldValues["claimNumber / accountNumber"] ??
+            brief.patientContext.claimNumber,
+          accountNumber:
+            missingFieldValues["accountNumber"] ??
+            missingFieldValues["claimNumber / accountNumber"] ??
+            brief.patientContext.accountNumber,
+        },
+        documentContext: {
+          ...brief.documentContext,
+          serviceDate: missingFieldValues["serviceDate"] ?? brief.documentContext.serviceDate,
+          billIssueDate: missingFieldValues["billIssueDate"] ?? brief.documentContext.billIssueDate,
+          locationOfCare: missingFieldValues["locationOfCare"] ?? brief.documentContext.locationOfCare,
+          providerAddress: missingFieldValues["providerAddress"] ?? brief.documentContext.providerAddress,
+          insurerAddress: missingFieldValues["insurerAddress"] ?? brief.documentContext.insurerAddress,
+        },
+        analysis: {
+          ...brief.analysis,
+          extractedFields: {
+            ...brief.analysis.extractedFields,
+            patientName: missingFieldValues["patientName"] ?? brief.analysis.extractedFields.patientName,
+            patientAddress: missingFieldValues["patientAddress"] ?? brief.analysis.extractedFields.patientAddress,
+            memberID: missingFieldValues["memberID"] ?? brief.analysis.extractedFields.memberID,
+            claimNumber:
+              missingFieldValues["claimNumber"] ??
+              missingFieldValues["claimNumber / accountNumber"] ??
+              brief.analysis.extractedFields.claimNumber,
+            accountNumber:
+              missingFieldValues["accountNumber"] ??
+              missingFieldValues["claimNumber / accountNumber"] ??
+              brief.analysis.extractedFields.accountNumber,
+            serviceDate: missingFieldValues["serviceDate"] ?? brief.analysis.extractedFields.serviceDate,
+            billIssueDate: missingFieldValues["billIssueDate"] ?? brief.analysis.extractedFields.billIssueDate,
+            locationOfCare: missingFieldValues["locationOfCare"] ?? brief.analysis.extractedFields.locationOfCare,
+            providerAddress: missingFieldValues["providerAddress"] ?? brief.analysis.extractedFields.providerAddress,
+            insurerAddress: missingFieldValues["insurerAddress"] ?? brief.analysis.extractedFields.insurerAddress,
+          },
+        },
       }
     : null
 
@@ -992,6 +1429,8 @@ export function ActionCenter({ analysis, onClose }: ActionCenterProps) {
                 brief={brief}
                 overrides={overrides}
                 onOverrideChange={handleOverrideChange}
+                missingFieldValues={missingFieldValues}
+                onMissingFieldChange={handleMissingFieldChange}
               />
             )}
 
@@ -1005,6 +1444,9 @@ export function ActionCenter({ analysis, onClose }: ActionCenterProps) {
                 error={providerDraftError}
                 onGenerate={generateProviderDraft}
                 onDismissError={() => setProviderDraftError(null)}
+                caseDetailValues={missingFieldValues}
+                onCaseDetailChange={handleMissingFieldChange}
+                onContactOverride={handleOverrideChange}
               />
             )}
 
@@ -1018,6 +1460,9 @@ export function ActionCenter({ analysis, onClose }: ActionCenterProps) {
                 error={insurerDraftError}
                 onGenerate={generateInsurerDraft}
                 onDismissError={() => setInsurerDraftError(null)}
+                caseDetailValues={missingFieldValues}
+                onCaseDetailChange={handleMissingFieldChange}
+                onContactOverride={handleOverrideChange}
               />
             )}
 
@@ -1030,6 +1475,9 @@ export function ActionCenter({ analysis, onClose }: ActionCenterProps) {
                 error={callBriefError}
                 onGenerate={generateCallBrief}
                 onDismissError={() => setCallBriefError(null)}
+                caseDetailValues={missingFieldValues}
+                onCaseDetailChange={handleMissingFieldChange}
+                onContactOverride={handleOverrideChange}
               />
             )}
 
@@ -1042,13 +1490,14 @@ export function ActionCenter({ analysis, onClose }: ActionCenterProps) {
                 error={elevenLabsError}
                 onGenerate={generateElevenLabsPayload}
                 onDismissError={() => setElevenLabsError(null)}
+                onPlaceCall={() => {}}
               />
             )}
           </div>
 
           <Separator />
           <p className="text-xs text-[var(--muted-foreground)]">
-            All content is generated for review only. No emails are sent or calls placed from this interface.
+            Email drafts are for review only — no emails are sent. Calls are placed via ElevenLabs when credentials are configured.
           </p>
         </>
       )}
@@ -1060,6 +1509,14 @@ function LightningIcon() {
   return (
     <svg className="h-4 w-4 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+    </svg>
+  )
+}
+
+function PhoneIcon() {
+  return (
+    <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
     </svg>
   )
 }
