@@ -1,102 +1,62 @@
-# MedBill Agent
+# Veritas
 
-MedBill Agent is an AI-powered medical bill defense assistant that helps patients understand and dispute confusing or incorrect healthcare charges.
+**AI-powered medical bill defense.** Upload your bill. Veritas fights it.
 
-Users upload a **medical bill and Explanation of Benefits (EOB)**, and the system:
+---
 
-1. Parses both documents
-2. Detects likely billing or claims issues
-3. Recommends the best dispute path
-4. Generates provider dispute emails, insurer appeal drafts, and call scripts
-5. Optionally triggers agentic actions through external tools
+## Tracks
 
-## Problem
+**Personal AI Agent** — Veritas acts as a fully autonomous agent on behalf of the patient — analyzing bills, drafting disputes, making phone calls, and following up, all without human intervention.
 
-Medical bills are complex and difficult to Veritasfy.
+**Healthcare (Societal Impact)** — 80% of U.S. medical bills contain errors. Veritas detects and disputes them automatically, preventing medical debt for patients who lack the time or expertise to fight back.
 
-Patients often encounter:
+**ElevenLabs** — A voice agent powered by ElevenLabs calls healthcare providers and insurance companies directly to dispute charges in real time, handles follow-up callbacks, and delivers full transcripts to the patient.
 
-- duplicate charges
-- incorrect out-of-network billing
-- mismatches between provider bills and insurance EOBs
-- confusing claim denials
-- unclear patient responsibility
+**Lava API** — Every AI model and external service is accessed through Lava's unified gateway. Lava also orchestrates the ElevenLabs–Twilio voice pipeline end-to-end — from synthesis to telephony — through a single integration layer.
 
-Most patients do not know:
+**MBZUAI K2 Think** — We tuned K2 Think V2's inference path to reduce latency without sacrificing answer quality, focusing on reasoning depth, prefill/decode behavior, tokens-per-second, and KV-cache efficiency rather than superficial sampling knobs.
 
-- whether the hospital or insurer made the mistake
-- how to compare bills and EOBs
-- how to dispute incorrect charges
-- what language to use when contacting providers or insurers
+---
 
-## Solution
+## The Problem
 
-MedBill Agent analyzes both the **provider bill** and **insurance EOB** to detect inconsistencies and guide the user through the correct dispute path.
+Medical billing errors affect millions of Americans every year. Studies estimate that nearly **80% of hospital bills contain mistakes** — duplicate charges, incorrectly applied insurance benefits, upcoded procedures, and more.
 
-Instead of spending hours calling billing departments, users receive:
+Most patients never challenge these errors. Doing so requires decoding CPT codes, interpreting insurance Explanations of Benefits, and navigating months of healthcare bureaucracy. The average person does not have the time, knowledge, or confidence to fight back.
 
-- a clear explanation of the issue
-- recommended next steps
-- ready-to-send dispute communication
+**We surveyed 405 people.** 63.5% said they had received a medical bill with incorrect charges. The majority either didn't dispute them or didn't know where to begin. We also spoke with a healthcare provider in New York City who confirmed that patients regularly receive incorrect charges and are often too intimidated to act — and that these errors can lead to lasting medical debt.
 
-## Key Features
+---
 
-- Upload medical bill and EOB
-- OCR + document parsing
-- Automated billing audit
-- Issue detection
-- Estimated savings calculation
-- Provider dispute email generation
-- Insurance appeal generation
-- Guided billing call scripts
-- Voice-enabled demo interaction
+## What Veritas Does
+
+Veritas turns a confusing medical bill into a resolved dispute.
+
+1. **Upload** — The patient uploads their medical bill and insurance EOB.
+2. **Analyze** — Veritas parses every line item, deciphers CPT codes, and scans for errors like duplicate charges, unapplied insurance benefits, and upcoded procedures.
+3. **Explain** — Findings are presented in plain language so the patient understands exactly what went wrong and how much they were overcharged.
+4. **Dispute** — Three specialized agents take action:
+   - **Email Agent** — Drafts and sends a formal dispute letter to the healthcare provider.
+   - **Legal Research Agent** — Powered by Perplexity Sonar, finds legal clauses and regulatory justifications to build the strongest possible case.
+   - **Voice Agent** — Built with ElevenLabs + Twilio (orchestrated through Lava), calls the provider and insurer directly, disputes the charges in real time, and handles follow-up callbacks.
+5. **Track** — Full call transcripts, plain-language summaries, and dispute status are available throughout the process.
+
+The patient never picks up the phone. Veritas handles everything.
+
+---
 
 ## Tech Stack
 
-Frontend
-- Next.js
-- React
-- TypeScript
-
-Backend
-- Node.js or Python
-
-AI / APIs
-- Gemini API for document parsing
-- Lava API for action orchestration
-- ElevenLabs for voice interaction
-
-## Project Structure
-README.md
-AGENTS.md
-ARCHITECTURE.md
-DEMO.md
-PROMPTS.md
-SCHEMAS.md
-TASKS.md
-KNOWN_ISSUES.md
-
-
-## Setup
-
-Frontend
-
-
-cd frontend
-npm install
-npm run dev
-
-
-Backend
-
-
-cd backend
-npm install
-npm run dev
-
-
-## Vision
-
-Medical bills should not be harder to understand than taxes.
-
-Our goal is to build an AI system that helps patients **understand, challenge, and resolve medical billing issues automatically.**
+![Next.js](https://img.shields.io/badge/Next.js-000000?style=for-the-badge&logo=nextdotjs&logoColor=white)
+![React](https://img.shields.io/badge/React-61DAFB?style=for-the-badge&logo=react&logoColor=black)
+![TypeScript](https://img.shields.io/badge/TypeScript-3178C6?style=for-the-badge&logo=typescript&logoColor=white)
+![Vercel](https://img.shields.io/badge/Vercel-000000?style=for-the-badge&logo=vercel&logoColor=white)
+![Supabase](https://img.shields.io/badge/Supabase-3FCF8E?style=for-the-badge&logo=supabase&logoColor=white)
+![Auth0](https://img.shields.io/badge/Auth0-EB5424?style=for-the-badge&logo=auth0&logoColor=white)
+![Google Gemini](https://img.shields.io/badge/Gemini_API-8E75B2?style=for-the-badge&logo=googlegemini&logoColor=white)
+![OpenAI](https://img.shields.io/badge/OpenAI-412991?style=for-the-badge&logo=openai&logoColor=white)
+![Perplexity](https://img.shields.io/badge/Perplexity_Sonar-1FB8CD?style=for-the-badge&logo=perplexity&logoColor=white)
+![ElevenLabs](https://img.shields.io/badge/ElevenLabs-000000?style=for-the-badge&logo=elevenlabs&logoColor=white)
+![Twilio](https://img.shields.io/badge/Twilio-F22F46?style=for-the-badge&logo=twilio&logoColor=white)
+![Lava](https://img.shields.io/badge/Lava_API-FF6B35?style=for-the-badge)
+![K2 Think](https://img.shields.io/badge/K2_Think_V2-0055FF?style=for-the-badge)
