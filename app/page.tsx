@@ -129,8 +129,8 @@ const LetterPreview = () => (
 )
 
 const steps = [
-  { num: "01", title: "Upload your bill", detail: "Hospital bill and EOB. Veritas reads both.", Preview: UploadPreview },
-  { num: "02", title: "Veritas audits every line", detail: "CPT codes, duplicates, denied claims — checked automatically.", Preview: AuditPreview },
+  { num: "01", title: "Upload your bill", detail: "Hospital bill and EOB. NIPS reads both.", Preview: UploadPreview },
+  { num: "02", title: "NIPS audits every line", detail: "CPT codes, duplicates, denied claims — checked automatically.", Preview: AuditPreview },
   { num: "03", title: "Get your dispute letters", detail: "Pre-filled, ready to send.", Preview: LetterPreview },
 ]
 
@@ -160,26 +160,26 @@ export default function Home() {
             </div>
 
             <h1
-  style={{
-    fontSize: "clamp(2.6rem, 5vw, 3.6rem)",
-    fontWeight: 400,
-    lineHeight: 1.1,
-    letterSpacing: "-0.025em",
-    color: "#111",
-    maxWidth: 520
-  }}
->
-  Understand your
-  <br />
-  medical bill
-  <br /> with
-  <span style={{ color: "#DC2626", fontStyle: "italic" }}> less stress.
-</span>
-</h1>
+              style={{
+                fontSize: "clamp(2.6rem, 5vw, 3.6rem)",
+                fontWeight: 400,
+                lineHeight: 1.1,
+                letterSpacing: "-0.025em",
+                color: "#111",
+                maxWidth: 520
+              }}
+            >
+              Understand your
+              <br />
+              medical bill
+              <br /> with
+              <span style={{ color: "#DC2626", fontStyle: "italic" }}> less stress.
+              </span>
+            </h1>
 
             <p style={{ marginTop: 18, fontSize: 17, lineHeight: 1.7, color: "#5C5248", maxWidth: 380, fontFamily: "sans-serif" }}>
-             64% of patients never challenge their medical bill.
-Veritas makes disputing one take minutes instead of months.
+              64% of patients never challenge their medical bill.
+              NIPS makes disputing one take minutes instead of months.
             </p>
 
             <div style={{ marginTop: 32, display: "flex", alignItems: "center", gap: 14 }}>
@@ -276,7 +276,7 @@ Veritas makes disputing one take minutes instead of months.
               <em style={{ color: "#F87171" }}>Most people never find out.</em>
             </h2>
             <p style={{ marginTop: 14, fontSize: 15, color: "#6B7280", fontFamily: "sans-serif", lineHeight: 1.65 }}>
-              Upload your bill. Veritas does the rest.
+              Upload your bill. NIPS does the rest.
             </p>
           </div>
           <div style={{ flexShrink: 0 }}>
@@ -298,7 +298,7 @@ Veritas makes disputing one take minutes instead of months.
         <div className="mx-auto max-w-6xl" style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
           <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
             <span style={{ width: 7, height: 7, borderRadius: "50%", backgroundColor: "#DC2626", display: "inline-block" }} />
-            <span style={{ fontSize: 12, color: "#4B5563", fontFamily: "sans-serif" }}>Veritas · Medical Billing Audit</span>
+            <span style={{ fontSize: 12, color: "#4B5563", fontFamily: "sans-serif" }}>NIPS · Medical Billing Audit</span>
           </div>
           <span style={{ fontSize: 11, color: "#374151", fontFamily: "sans-serif" }}>Auth0 secured · HIPPA Compliant </span>
         </div>

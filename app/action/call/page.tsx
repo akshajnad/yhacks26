@@ -7,7 +7,7 @@ import { Badge } from "@/components/ui/badge"
 import type { AnalysisResult } from "@/types/analysis"
 import type { OutreachBrief, CallBriefResponse, ElevenLabsCallPayload } from "@/types/outreach"
 
-const RECENT_ANALYSES_STORAGE_KEY = "redline.recent-analyses.v1"
+const RECENT_ANALYSES_STORAGE_KEY = "NIPS.recent-analyses.v1"
 
 function loadAnalysisByCaseId(caseId: string | null): AnalysisResult | null {
   if (!caseId) return null
@@ -53,7 +53,7 @@ function ScriptSection({ title, items, color }: { title: string; items: string[]
       <ul className="space-y-0.5">
         {items.map((item, i) => (
           <li key={i} className="text-xs">
-             • {item}
+            • {item}
           </li>
         ))}
       </ul>
@@ -93,7 +93,7 @@ export default function CallPage() {
 
   const [brief, setBrief] = useState<OutreachBrief | null>(null)
   const [briefWithOverrides, setBriefWithOverrides] = useState<OutreachBrief | null>(null)
-  
+
   const [callBrief, setCallBrief] = useState<CallBriefResponse | null>(null)
   const [elevenLabsPayload, setElevenLabsPayload] = useState<ElevenLabsCallPayload | null>(null)
 
@@ -105,14 +105,14 @@ export default function CallPage() {
   const [statusText, setStatusText] = useState("Identifying targets...")
 
   const hasFetched = useRef(false)
-  
+
   // 1. Fetch Outreach Plan
   useEffect(() => {
     if (!analysis || hasFetched.current) return
     hasFetched.current = true
 
     setStatusText("Analyzing case for outreach plan...")
-    
+
     fetch("/api/outreach/plan", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -150,7 +150,7 @@ export default function CallPage() {
     if (!briefWithOverrides || callBrief) return
 
     setStatusText("Generating your personalized Call Brief...")
-    
+
     const target = briefWithOverrides.contactTargets.find((t) => t.audience === "provider") ?? briefWithOverrides.contactTargets[0]
     if (!target) {
       setStatusText("No contact targets available. Cannot build call brief.")
@@ -177,7 +177,7 @@ export default function CallPage() {
     if (!briefWithOverrides || !callBrief || elevenLabsPayload) return
 
     setStatusText("Building ElevenLabs payload...")
-    
+
     const target = briefWithOverrides.contactTargets.find((t) => t.audience === "provider") ?? briefWithOverrides.contactTargets[0]
     if (!target) return
 
@@ -251,52 +251,52 @@ export default function CallPage() {
             </p>
           </div>
           {elevenLabsPayload && (
-             <Button
-                size="lg"
-                onClick={handlePlaceCall}
-                disabled={callLoading || !hasPhone || elevenLabsPayload.mode === "preview"}
-                className="shrink-0 gap-2 bg-green-600 text-white hover:bg-green-700 disabled:opacity-50 text-base py-6 px-8 shadow-md transition-transform hover:scale-105"
-             >
-               {callLoading ? (
-                 <>
-                   <svg className="h-4 w-4 animate-spin text-white" fill="none" viewBox="0 0 24 24">
-                     <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                     <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
-                   </svg>
-                   Calling...
-                 </>
-               ) : (
-                 <>
-                   <PhoneIcon />
-                   Place Call
-                 </>
-               )}
-             </Button>
+            <Button
+              size="lg"
+              onClick={handlePlaceCall}
+              disabled={callLoading || !hasPhone || elevenLabsPayload.mode === "preview"}
+              className="shrink-0 gap-2 bg-green-600 text-white hover:bg-green-700 disabled:opacity-50 text-base py-6 px-8 shadow-md transition-transform hover:scale-105"
+            >
+              {callLoading ? (
+                <>
+                  <svg className="h-4 w-4 animate-spin text-white" fill="none" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                  </svg>
+                  Calling...
+                </>
+              ) : (
+                <>
+                  <PhoneIcon />
+                  Place Call
+                </>
+              )}
+            </Button>
           )}
         </header>
 
         {isLoading ? (
           <div className="rounded-xl border border-slate-200 bg-slate-50 p-12 text-center">
-             <LoadingSpinner label={statusText} />
+            <LoadingSpinner label={statusText} />
           </div>
         ) : (
           <div className="space-y-6 animate-in fade-in duration-500">
-             
-             {/* Preview/Config Warning Banner */}
-             {elevenLabsPayload?.mode === "preview" && (
-                <div className="rounded-md border border-amber-200 bg-amber-50 px-4 py-3">
-                  <p className="text-sm text-amber-800">
-                    <span className="font-semibold text-amber-900">Preview mode active:</span> Set{" "}
-                    <code className="rounded bg-amber-100 px-1.5 font-mono text-amber-900">ELEVENLABS_API_KEY</code>,{" "}
-                    <code className="rounded bg-amber-100 px-1.5 font-mono text-amber-900">ELEVENLABS_AGENT_ID</code>, and{" "}
-                    <code className="rounded bg-amber-100 px-1.5 font-mono text-amber-900">ELEVENLABS_AGENT_PHONE_NUMBER_ID</code>{" "}
-                    in <code className="rounded bg-amber-100 px-1.5 font-mono text-amber-900">.env.local</code> to enable live automated calls.
-                  </p>
-                </div>
-             )}
 
-             {/* Call Notifications */}
-             {callError && (
+            {/* Preview/Config Warning Banner */}
+            {elevenLabsPayload?.mode === "preview" && (
+              <div className="rounded-md border border-amber-200 bg-amber-50 px-4 py-3">
+                <p className="text-sm text-amber-800">
+                  <span className="font-semibold text-amber-900">Preview mode active:</span> Set{" "}
+                  <code className="rounded bg-amber-100 px-1.5 font-mono text-amber-900">ELEVENLABS_API_KEY</code>,{" "}
+                  <code className="rounded bg-amber-100 px-1.5 font-mono text-amber-900">ELEVENLABS_AGENT_ID</code>, and{" "}
+                  <code className="rounded bg-amber-100 px-1.5 font-mono text-amber-900">ELEVENLABS_AGENT_PHONE_NUMBER_ID</code>{" "}
+                  in <code className="rounded bg-amber-100 px-1.5 font-mono text-amber-900">.env.local</code> to enable live automated calls.
+                </p>
+              </div>
+            )}
+
+            {/* Call Notifications */}
+            {callError && (
               <div className="flex items-start gap-2 rounded-md border border-red-200 bg-red-50 px-4 py-3">
                 <p className="flex-1 text-sm text-red-700 font-medium">Failed to place call: {callError}</p>
               </div>
@@ -311,7 +311,7 @@ export default function CallPage() {
                     Call successfully initiated to {callSuccess.toNumber}. The ElevenLabs agent is calling them now.
                   </p>
                 </div>
-                
+
                 {/* Hardcoded Follow-up notification */}
                 <div className="flex items-start gap-3 rounded-lg border border-blue-200 bg-blue-50 px-4 py-4 shadow-sm animate-in slide-in-from-bottom-2 duration-500">
                   <div className="mt-0.5 rounded-full bg-blue-100 p-1">
@@ -322,7 +322,7 @@ export default function CallPage() {
                   <div>
                     <h4 className="text-sm font-semibold text-blue-900">Follow-up Scheduled</h4>
                     <p className="mt-1 text-sm text-blue-700 leading-relaxed">
-                      Our Redline agent has successfully reached out on your behalf. We have scheduled an automated follow-up in <span className="font-bold underline">7 days</span> to verify the status of your dispute if no resolution is detected.
+                      Our NIPS agent has successfully reached out on your behalf. We have scheduled an automated follow-up in <span className="font-bold underline">7 days</span> to verify the status of your dispute if no resolution is detected.
                     </p>
                   </div>
                 </div>
@@ -339,7 +339,7 @@ export default function CallPage() {
                   </div>
                   {!hasPhone && <Badge variant="destructive">No Phone Extracted</Badge>}
                 </div>
-                
+
                 <div className="flex flex-col sm:flex-row gap-4 sm:items-start">
                   <div className="flex-1">
                     <label className="mb-1 block text-xs font-semibold uppercase tracking-wide text-slate-500">Phone</label>
@@ -364,7 +364,7 @@ export default function CallPage() {
                         if (!prev) return prev;
                         return {
                           ...prev,
-                          contactTargets: prev.contactTargets.map(t => 
+                          contactTargets: prev.contactTargets.map(t =>
                             t.id === target.id ? { ...t, toEmail: e.target.value } : t
                           )
                         }
@@ -379,9 +379,9 @@ export default function CallPage() {
             {/* Call Brief Highlights */}
             {callBrief && (
               <div className="space-y-4">
-                 <h3 className="text-base font-semibold text-slate-900 border-b border-slate-100 pb-2">Conversation Script</h3>
-                 
-                 <div className="rounded-lg border border-[var(--border)] bg-slate-50 p-5">
+                <h3 className="text-base font-semibold text-slate-900 border-b border-slate-100 pb-2">Conversation Script</h3>
+
+                <div className="rounded-lg border border-[var(--border)] bg-slate-50 p-5">
                   <div className="mb-2 flex items-center justify-between">
                     <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Agent's Opening Line</p>
                     <CopyButton text={callBrief.openingScript} />

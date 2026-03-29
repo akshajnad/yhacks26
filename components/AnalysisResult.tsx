@@ -495,7 +495,7 @@ export function AnalysisResultDisplay({
           <div>
             <h4 className="text-sm font-semibold text-blue-900">Follow-up Scheduled</h4>
             <p className="mt-1 text-sm text-blue-700 leading-relaxed">
-              Outreach initiated. Our Redline agent has successfully scheduled an automated follow-up in <span className="font-bold underline">7 days</span> to check for updates on your dispute.
+              Outreach initiated. Our NIPS agent has successfully scheduled an automated follow-up in <span className="font-bold underline">7 days</span> to check for updates on your dispute.
             </p>
           </div>
         </div>
