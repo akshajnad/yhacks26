@@ -1,6 +1,7 @@
 import type { Metadata } from "next"
 import { AppHeader } from "@/components/AppHeader"
 import { Auth0ProviderWrapper } from "@/components/Auth0ProviderWrapper"
+import { ChatOverlay } from "@/components/ChatOverlay"
 import "./globals.css"
 
 export const metadata: Metadata = {
@@ -20,6 +21,8 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
           <footer className="border-t border-[var(--border)] bg-white py-4 text-center text-xs text-slate-500">
             Redline demo workspace
           </footer>
+
+          <ChatOverlay />
         </Auth0ProviderWrapper>
       </body>
     </html>

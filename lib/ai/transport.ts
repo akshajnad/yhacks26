@@ -97,3 +97,42 @@ export async function analyze(
   console.log("[transport] Response received, length:", content.length)
   return content
 }
+
+/**
+ * Same as analyze, but for general chatbot use (no JSON enforcement).
+ */
+export async function chat(
+  messages: ChatMessage[],
+  temperature = 0.7
+): Promise<string> {
+  const secretKey = process.env.LAVA_SECRET_KEY
+  if (!secretKey) {
+    throw new Error("LAVA_SECRET_KEY is not set in environment")
+  }
+
+  const lava = new Lava()
+  const OPENAI_CHAT_URL = lava.providers.openai + "/chat/completions"
+
+  try {
+    const response = await fetch(OPENAI_CHAT_URL, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${secretKey}`,
+      },
+      body: JSON.stringify({
+        model: MODEL,
+        messages,
+        temperature,
+      }),
+    })
+
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status} - ${await response.text()}`)
+    }
+    const data = (await response.json()) as ChatCompletionResponse
+    return data?.choices?.[0]?.message?.content ?? ""
+  } catch (err) {
+    throw new Error(`Chat request failed: ${err instanceof Error ? err.message : String(err)}`)
+  }
+}
