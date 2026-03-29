@@ -6,7 +6,7 @@ import { useCallback, useState } from "react"
 import { MultiUploadZone } from "@/components/MultiUploadZone"
 import { AnalysisResultDisplay } from "@/components/AnalysisResult"
 import { Spotlight } from "@/components/ui/spotlight"
-import { GlowCard } from "@/components/ui/glow-card"
+import { GlowCard } from "@/components/ui/spotlight-card"
 import type { AnalysisResult } from "@/types/analysis"
 import { supabase } from "@/lib/supabase"
 
@@ -189,7 +189,7 @@ export default function NewAnalysisPage() {
         </header>
 
         {!analysisResult ? (
-          <GlowCard className="animate-fade-up p-6">
+          <GlowCard className="animate-fade-up p-6" customSize>
             <div className="mb-6">
               <h2 className="text-lg font-semibold text-slate-900">Upload Documents</h2>
               <p className="mt-2 text-sm text-slate-600">

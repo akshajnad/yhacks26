@@ -3,7 +3,8 @@
 import { useEffect, useMemo, useState } from "react";
 import type { AnalysisResult } from "@/types/analysis";
 import { Spotlight } from "@/components/ui/spotlight";
-import { GlowCard } from "@/components/ui/glow-card";
+import { GlowCard } from "@/components/ui/spotlight-card";
+import { MailCheck } from "lucide-react";
 
 const RECENT_ANALYSES_STORAGE_KEY = "NIPS.recent-analyses.v1";
 
@@ -144,13 +145,15 @@ export default function EmailComposerPage() {
 
   return (
     <section className="mx-auto w-full max-w-4xl px-4 py-10 sm:px-6 lg:px-8">
-      <Spotlight />
+      <div className="relative">
+      <Spotlight className="-top-40 left-10" fill="#c4b5fd" />
       <div className="animate-fade-up space-y-6 rounded-2xl border border-[var(--border)] bg-white/95 p-6 shadow-lg">
         <header>
           <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
             Take Action
           </p>
-          <h1 className="mt-1 text-2xl font-semibold tracking-tight text-slate-900">
+          <h1 className="mt-1 flex items-center gap-2 text-2xl font-semibold tracking-tight text-slate-900">
+            <MailCheck className="h-6 w-6 text-blue-600" />
             Email Providers
           </h1>
           <p className="mt-2 text-sm text-slate-600">
@@ -169,7 +172,7 @@ export default function EmailComposerPage() {
           </div>
         ) : null}
 
-        <GlowCard className="p-4 text-sm">
+        <GlowCard className="p-4 text-sm" customSize>
           <p className="font-medium text-slate-800">Connected Gmail</p>
           <p className="mt-1 text-slate-600">
             {gmailConnectedEmail
@@ -309,6 +312,7 @@ export default function EmailComposerPage() {
             )}
           </div>
         ) : null}
+      </div>
       </div>
     </section>
   );

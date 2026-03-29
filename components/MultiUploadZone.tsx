@@ -2,7 +2,7 @@
 
 import { useCallback, useRef, useState } from "react"
 import { Button } from "@/components/ui/button"
-import { GlowCard } from "@/components/ui/glow-card"
+import { GlowCard } from "@/components/ui/spotlight-card"
 import { cn } from "@/lib/utils"
 import type { AnalysisResult } from "@/types/analysis"
 
@@ -127,7 +127,7 @@ export function MultiUploadZone({ onResult, onError }: MultiUploadZoneProps) {
   return (
     <div className="space-y-5">
       {isLoading ? (
-        <GlowCard className="animate-fade-up border-blue-100 bg-gradient-to-b from-blue-50 to-white p-5">
+        <GlowCard className="animate-fade-up border-blue-100 p-5" customSize>
           <div className="flex items-center gap-2">
             <SpinnerIcon />
             <p className="text-sm font-semibold text-slate-900">Investigating billing documents</p>
@@ -172,7 +172,7 @@ export function MultiUploadZone({ onResult, onError }: MultiUploadZoneProps) {
             const isDragging = dragging === slot.key
 
             return (
-              <GlowCard key={slot.key} className="animate-fade-up p-3">
+              <GlowCard key={slot.key} className="animate-fade-up p-3" customSize>
                 <div className="mb-2 flex items-center gap-2">
                   <p className="text-sm font-semibold text-slate-900">{slot.label}</p>
                   {slot.required ? (

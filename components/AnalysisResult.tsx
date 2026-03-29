@@ -6,7 +6,9 @@ import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Separator } from "@/components/ui/separator"
 import { CollapsibleCard } from "@/components/ui/collapsible-card"
-import { GlowCard } from "@/components/ui/glow-card"
+import { GlowCard } from "@/components/ui/spotlight-card"
+import { CursorSpotlight } from "@/components/ui/cursor-spotlight"
+import { Mail, PhoneCall } from "lucide-react"
 import type { AnalysisResult, ActionCategory, IssueSeverity, IssueType } from "@/types/analysis"
 
 interface AnalysisResultProps {
@@ -203,7 +205,8 @@ export function AnalysisResultDisplay({ result }: AnalysisResultProps) {
         </SectionWrapper>
 
         <SectionWrapper delay={1}>
-          <CollapsibleCard title="Issues Detected" icon={<AlertIcon />}>
+          <CollapsibleCard title="Issues Detected" icon={<AlertIcon />} className="relative">
+            <CursorSpotlight size={180} className="from-red-100 via-orange-100 to-amber-100" />
             {detectedIssues.length === 0 ? (
               <p className="text-sm text-[var(--muted-foreground)]">No billing issues detected in this document.</p>
             ) : (
@@ -234,7 +237,8 @@ export function AnalysisResultDisplay({ result }: AnalysisResultProps) {
         </SectionWrapper>
 
         <SectionWrapper delay={3}>
-          <CollapsibleCard title="Take Action" icon={<CheckIcon />}>
+          <CollapsibleCard title="Take Action" icon={<CheckIcon />} className="relative">
+            <CursorSpotlight size={220} className="from-blue-100 via-violet-100 to-cyan-100" />
             {recommendedActions.length === 0 ? (
               <p className="mb-4 text-sm text-[var(--muted-foreground)]">No specific actions recommended.</p>
             ) : (
@@ -256,18 +260,19 @@ export function AnalysisResultDisplay({ result }: AnalysisResultProps) {
             )}
 
             <div className="grid gap-3 md:grid-cols-2">
-              <GlowCard className="p-4">
+              <GlowCard className="p-4" customSize>
                 <p className="text-sm font-semibold text-slate-900">Email Providers</p>
                 <p className="mt-2 text-sm leading-6 text-slate-600">
                   Open a prefilled dispute email draft in a dedicated composer page, then edit and send with Gmail.
                 </p>
                 <Button asChild className="mt-3 w-full transition-transform duration-300 hover:scale-[1.02]" onClick={() => setActionTaken(true)}>
                   <Link href={`/action/email?caseId=${encodeURIComponent(caseId)}`} target="_blank" rel="noreferrer">
+                    <Mail className="h-4 w-4" />
                     Open Email Composer
                   </Link>
                 </Button>
               </GlowCard>
-              <GlowCard className="p-4">
+              <GlowCard className="p-4" customSize>
                 <p className="text-sm font-semibold text-slate-900">Call Providers</p>
                 <p className="mt-2 text-sm leading-6 text-slate-600">
                   Review your personalized call script and instantly dispatch an automated dispute call via ElevenLabs.
@@ -278,7 +283,7 @@ export function AnalysisResultDisplay({ result }: AnalysisResultProps) {
                   onClick={() => setActionTaken(true)}
                 >
                   <Link href={`/action/call?caseId=${encodeURIComponent(caseId)}`} target="_blank" rel="noreferrer">
-                    <LightningIcon />
+                    <PhoneCall className="h-4 w-4" />
                     Place call
                   </Link>
                 </Button>
@@ -396,14 +401,6 @@ function ScaleIcon() {
   return (
     <svg className="h-5 w-5 text-indigo-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 6l3 1m0 0l-3 9a5.002 5.002 0 006.001 0M6 7l3 9M6 7l6-2m6 2l3-1m-3 1l-3 9a5.002 5.002 0 006.001 0M18 7l3 9m-3-9l-6-2m0-2v2m0 16V5m0 16H9m3 0h3" />
-    </svg>
-  )
-}
-
-function LightningIcon() {
-  return (
-    <svg className="h-5 w-5 text-slate-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h7m0 0L8 3m3 3L8 9m9 9h-7m0 0l3-3m-3 3l3 3M4 18h7m2-12h7" />
     </svg>
   )
 }
