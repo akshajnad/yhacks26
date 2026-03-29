@@ -30,16 +30,16 @@ function resolveContactTargets(analysis: AnalysisResult): ContactTarget[] {
   const targets: ContactTarget[] = []
 
   const needsProvider =
-    issueTypes.has("DUPLICATE_CHARGE") ||
-    issueTypes.has("UPCODING") ||
-    issueTypes.has("OVERCHARGE") ||
-    issueTypes.has("BALANCE_BILLING") ||
-    issueTypes.has("BILL_EOB_MISMATCH")
+      issueTypes.has("DUPLICATE_CHARGE") ||
+      issueTypes.has("UPCODING") ||
+      issueTypes.has("OVERCHARGE") ||
+      issueTypes.has("BALANCE_BILLING") ||
+      issueTypes.has("BILL_EOB_MISMATCH")
 
   const needsInsurer =
-    issueTypes.has("DENIAL_FLAG") ||
-    issueTypes.has("NO_SURPRISES_ACT_TRIGGER") ||
-    issueTypes.has("BILL_EOB_MISMATCH")
+      issueTypes.has("DENIAL_FLAG") ||
+      issueTypes.has("NO_SURPRISES_ACT_TRIGGER") ||
+      issueTypes.has("BILL_EOB_MISMATCH")
 
   if (needsProvider) {
     targets.push({
@@ -70,8 +70,8 @@ function resolveContactTargets(analysis: AnalysisResult): ContactTarget[] {
       preferredChannels: ["email", "phone", "portal"],
       source: analysis.extractedFields.insurer ? "extracted" : "needs_review",
       notes: issueTypes.has("DENIAL_FLAG")
-        ? "File a formal appeal with the appeals department."
-        : "Contact to verify EOB accuracy and request claim review.",
+          ? "File a formal appeal with the appeals department."
+          : "Contact to verify EOB accuracy and request claim review.",
     })
   }
 
@@ -130,8 +130,8 @@ function buildRequestedResolution(analysis: AnalysisResult): string[] {
 // ── Missing fields detection ──────────────────────────────────────────────────
 
 function detectMissingFields(
-  analysis: AnalysisResult,
-  targets: ContactTarget[]
+    analysis: AnalysisResult,
+    targets: ContactTarget[]
 ): string[] {
   const missing: string[] = []
   const ef = analysis.extractedFields
@@ -155,7 +155,7 @@ function detectMissingFields(
 function buildToneGuidance(analysis: AnalysisResult): OutreachToneGuidance {
   const hasHighSeverity = analysis.detectedIssues.some((i) => i.severity === "error")
   const hasNSATrigger = analysis.detectedIssues.some(
-    (i) => i.type === "NO_SURPRISES_ACT_TRIGGER" || i.type === "BALANCE_BILLING"
+      (i) => i.type === "NO_SURPRISES_ACT_TRIGGER" || i.type === "BALANCE_BILLING"
   )
 
   return {
@@ -170,7 +170,7 @@ function buildToneGuidance(analysis: AnalysisResult): OutreachToneGuidance {
 export async function planOutreach(input: {
   analysis: AnalysisResult
 }): Promise<OutreachBrief> {
-  const { analysis } = input
+  const {analysis} = input
   const ef = analysis.extractedFields
 
   const patientContext: PatientContext = {
