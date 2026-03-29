@@ -3,16 +3,20 @@ import { cva, type VariantProps } from "class-variance-authority"
 import { cn } from "@/lib/utils"
 
 const badgeVariants = cva(
-  "inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-semibold transition-colors",
+  "inline-flex items-center rounded-full border px-2.5 py-1 text-[0.75rem] font-semibold transition-colors",
   {
     variants: {
       variant: {
-        default: "border-transparent bg-[var(--primary)] text-[var(--primary-foreground)]",
+        default:
+          "border-transparent bg-[color-mix(in_srgb,var(--color-sage-100)_82%,var(--color-white)_18%)] text-[var(--color-teal-700)]",
         secondary: "border-transparent bg-[var(--secondary)] text-[var(--secondary-foreground)]",
         destructive: "border-transparent bg-[var(--destructive)] text-[var(--destructive-foreground)]",
-        warning: "border-amber-300 bg-amber-50 text-amber-800",
-        error: "border-red-300 bg-red-50 text-red-800",
-        outline: "text-[var(--foreground)]",
+        warning:
+          "border-[color-mix(in_srgb,var(--color-coral-400)_28%,var(--color-stone-200)_72%)] bg-[color-mix(in_srgb,var(--color-coral-400)_10%,var(--color-white)_90%)] text-[var(--color-coral-500)]",
+        error:
+          "border-[color-mix(in_srgb,var(--color-coral-400)_28%,var(--color-stone-200)_72%)] bg-[color-mix(in_srgb,var(--color-coral-400)_12%,var(--color-white)_88%)] text-[var(--color-coral-500)]",
+        outline:
+          "border-[var(--border)] bg-[color-mix(in_srgb,var(--color-white)_74%,var(--color-stone-100)_26%)] text-[var(--color-ink-700)]",
       },
     },
     defaultVariants: {

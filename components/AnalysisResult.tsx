@@ -1,39 +1,37 @@
-"use client";
+"use client"
 
-import { useState } from "react";
-import Link from "next/link";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import { Separator } from "@/components/ui/separator";
-import { ActionCenter } from "@/components/ActionCenter";
-import type {
-  AnalysisResult,
-  ActionCategory,
-  IssueSeverity,
-  IssueType,
-} from "@/types/analysis";
+import { useMemo, useState } from "react"
+import Link from "next/link"
+import {
+  ArrowRight,
+  CircleCheckBig,
+  Clock3,
+  FileText,
+  Landmark,
+  Mail,
+  Phone,
+  Scale,
+  ShieldCheck,
+  Sparkles,
+} from "lucide-react"
+import { ActionCenter } from "@/components/ActionCenter"
+import { Button } from "@/components/ui/button"
+import type { AnalysisResult, DetectedIssue, IssueType, RecommendedAction } from "@/types/analysis"
+import { cn } from "@/lib/utils"
 
 interface AnalysisResultProps {
-  result: AnalysisResult;
-  progressive?: boolean;
+  result: AnalysisResult
+  progressive?: boolean
 }
 
-const CATEGORY_LABELS: Record<ActionCategory, string> = {
-  contact_provider: "Contact Provider Billing",
-  file_appeal: "File Insurance Appeal",
-  legal_protection: "Use Legal Protection",
-  dispute_self_pay: "Dispute Self-Pay Balance",
-};
+const CATEGORY_LABELS: Record<RecommendedAction["category"], string> = {
+  contact_provider: "Contact provider billing",
+  file_appeal: "File insurance appeal",
+  legal_protection: "Use legal protection",
+  dispute_self_pay: "Dispute self-pay balance",
+}
 
-const CATEGORY_COLORS: Record<ActionCategory, string> = {
-  contact_provider: "bg-blue-50 text-blue-800 border-blue-200",
-  file_appeal: "bg-slate-100 text-slate-800 border-slate-300",
-  legal_protection: "bg-red-50 text-red-800 border-red-200",
-  dispute_self_pay: "bg-amber-50 text-amber-800 border-amber-200",
-};
-
-const ISSUE_TYPE_LABELS: Record<IssueType, string> = {
+const ISSUE_LABELS: Record<IssueType, string> = {
   BILL_EOB_MISMATCH: "Bill vs EOB mismatch",
   OVERCHARGE: "Potential overcharge",
   DENIAL_FLAG: "Claim denial flag",
@@ -41,659 +39,560 @@ const ISSUE_TYPE_LABELS: Record<IssueType, string> = {
   DUPLICATE_CHARGE: "Duplicate charge",
   UPCODING: "Possible upcoding",
   BALANCE_BILLING: "Balance billing risk",
-};
+}
 
-const ISSUE_REASONING: Record<IssueType, { why: string; next: string }> = {
+const ISSUE_REASONING: Record<IssueType, { summary: string; evidence: string[]; next: string }> = {
   BILL_EOB_MISMATCH: {
-    why: "Patient responsibility on the bill appears inconsistent with insurer adjudication.",
-    next: "Request corrected line-item responsibility from provider billing.",
+    summary: "Patient responsibility on the bill appears inconsistent with the insurer response.",
+    evidence: [
+      "The bill and EOB suggest different amounts are owed by the patient.",
+      "That difference usually needs a corrected provider statement or adjudication review.",
+    ],
+    next: "Ask the provider to reconcile the bill against the insurer response before collections continue.",
   },
   OVERCHARGE: {
-    why: "Charged amount appears higher than expected for documented services.",
-    next: "Request coded line-item breakdown and negotiated rate validation.",
+    summary: "The charged amount appears higher than expected for the documented service.",
+    evidence: [
+      "The billed amount may exceed what should have been charged for the care described.",
+      "A coded line-item breakdown is usually needed to validate the balance.",
+    ],
+    next: "Request the coded charge detail and challenge the amount if the breakdown is unsupported.",
   },
   DENIAL_FLAG: {
-    why: "A denial can shift cost burden to the patient if unresolved.",
-    next: "File an insurer appeal with supporting documentation.",
+    summary: "The insurer response shows a denial that may still be reviewable.",
+    evidence: [
+      "A denial can shift costs to the patient even when more documentation is available.",
+      "This usually needs a clear appeal path and supporting records.",
+    ],
+    next: "Prepare an insurer appeal with the supporting bill, EOB, and any denial notice.",
   },
   NO_SURPRISES_ACT_TRIGGER: {
-    why: "This may qualify for federal surprise-billing protections.",
-    next: "Initiate a No Surprises Act dispute pathway.",
+    summary: "The case may involve protections against certain surprise medical bills.",
+    evidence: [
+      "The billing pattern may qualify for federal protections depending on care setting and network status.",
+      "The relevant legal pathway should be reviewed before payment is accepted.",
+    ],
+    next: "Document the visit context and pursue the protection pathway before responding to the bill.",
   },
   DUPLICATE_CHARGE: {
-    why: "Duplicate billing can inflate out-of-pocket responsibility.",
-    next: "Dispute repeated CPT/service lines with provider billing.",
+    summary: "Two line items appear similar enough that they may represent the same service twice.",
+    evidence: [
+      "Repeated provider, service, or date patterns can point to duplicate billing.",
+      "This kind of issue usually needs the provider to correct the statement first.",
+    ],
+    next: "Ask billing to remove or justify the repeated line item and send a corrected statement.",
   },
   UPCODING: {
-    why: "Service coding level may exceed documented care complexity.",
-    next: "Request coding review with clinical documentation support.",
+    summary: "The coding level may not match the care complexity reflected in the record.",
+    evidence: [
+      "A higher coding level can inflate both the bill and patient responsibility.",
+      "The strongest review path compares the code used with the documented visit details.",
+    ],
+    next: "Request a coding review and supporting documentation from the provider.",
   },
   BALANCE_BILLING: {
-    why: "Balance billing may be improper depending on plan/network context.",
-    next: "Ask provider to pause collections while billing status is reviewed.",
+    summary: "The patient may have been billed for an amount that should not have been passed through directly.",
+    evidence: [
+      "Network status and service context can affect whether balance billing is allowed.",
+      "This issue is often resolved by pausing collections while eligibility is reviewed.",
+    ],
+    next: "Ask the provider to suspend collection activity while billing status is reviewed.",
   },
-};
+}
 
-type BillingStage = "provider" | "insurance" | "patient";
+const timelineStages = [
+  "Uploaded",
+  "Under review",
+  "Issues found",
+  "Draft prepared",
+  "Submitted",
+  "Awaiting response",
+  "Resolved",
+]
 
 function formatCurrency(value: number | null): string {
-  if (value === null) return "—";
+  if (value === null) return "Not available"
   return new Intl.NumberFormat("en-US", {
     style: "currency",
     currency: "USD",
     maximumFractionDigits: 0,
-  }).format(value);
+  }).format(value)
 }
 
 function formatDate(value: string | null): string {
-  if (!value) return "—";
-  return value;
+  if (!value) return "Not available"
+  return value
+}
+
+function formatDateTime(value: string): string {
+  return new Date(value).toLocaleString()
 }
 
 function getPotentialSavings(result: AnalysisResult): number | null {
-  const patientResponsibility = result.extractedFields.patientResponsibility;
-  if (typeof patientResponsibility === "number" && patientResponsibility > 0)
-    return patientResponsibility;
-
-  const billedAmount = result.extractedFields.billedAmount;
-  const insurerPaid = result.extractedFields.insurerPaid;
-
-  if (typeof billedAmount === "number" && typeof insurerPaid === "number") {
-    const delta = billedAmount - insurerPaid;
-    return delta > 0 ? delta : null;
+  const patientResponsibility = result.extractedFields.patientResponsibility
+  if (typeof patientResponsibility === "number" && patientResponsibility > 0) {
+    return patientResponsibility
   }
 
-  return null;
+  const billedAmount = result.extractedFields.billedAmount
+  const insurerPaid = result.extractedFields.insurerPaid
+  if (typeof billedAmount === "number" && typeof insurerPaid === "number") {
+    const delta = billedAmount - insurerPaid
+    return delta > 0 ? delta : null
+  }
+
+  return null
 }
 
-function issueStage(type: IssueType): BillingStage {
-  if (
-    type === "DUPLICATE_CHARGE" ||
-    type === "UPCODING" ||
-    type === "OVERCHARGE"
-  )
-    return "provider";
-  if (type === "DENIAL_FLAG") return "insurance";
-  return "patient";
+function buildReviewRows(result: AnalysisResult) {
+  const issues = result.detectedIssues
+  const fallbackTitle = result.extractedFields.provider || "Reviewed charge"
+
+  if (issues.length === 0) {
+    return [
+      {
+        title: fallbackTitle,
+        subtitle: result.explanation || "No obvious issues were detected in the uploaded documents.",
+        billed: formatCurrency(result.extractedFields.billedAmount),
+        patient: formatCurrency(result.extractedFields.patientResponsibility),
+        status: "Clear",
+        issue: null as DetectedIssue | null,
+      },
+    ]
+  }
+
+  return issues.map((issue) => ({
+    title: ISSUE_LABELS[issue.type],
+    subtitle: issue.description,
+    billed: formatCurrency(result.extractedFields.billedAmount),
+    patient: formatCurrency(result.extractedFields.patientResponsibility),
+    status: issue.severity === "error" ? "Issue found" : "Needs review",
+    issue,
+  }))
 }
 
-function recommendedAction(result: AnalysisResult): string {
-  const first = result.recommendedActions[0];
-  if (!first) return "Review findings and prepare outreach";
-  return CATEGORY_LABELS[first.category];
-}
+export function AnalysisResultDisplay({ result, progressive }: AnalysisResultProps) {
+  const [showActionCenter, setShowActionCenter] = useState(false)
+  const reviewRows = useMemo(() => buildReviewRows(result), [result])
+  const [selectedIssueIndex, setSelectedIssueIndex] = useState(0)
+  const selectedRow = reviewRows[selectedIssueIndex] ?? reviewRows[0]
+  const selectedIssue = selectedRow?.issue
+  const selectedReasoning = selectedIssue ? ISSUE_REASONING[selectedIssue.type] : null
 
-export function AnalysisResultDisplay({
-  result,
-  progressive,
-}: AnalysisResultProps) {
-  // Fix: declare the missing state that was used but never defined
-  const [showActionCenter, setShowActionCenter] = useState(false);
-
-  const caseId = result.caseId ?? "unknown";
-  const analyzedAt = result.analyzedAt ?? new Date().toISOString();
-  const explanation = result.explanation ?? "No explanation provided.";
-  const detectedIssues = result.detectedIssues ?? [];
-  const recommendedActions = result.recommendedActions ?? [];
-  const ef = result.extractedFields;
-  const extractedFields = {
-    provider: ef?.provider ?? null,
-    providerPhone: ef?.providerPhone ?? null,
-    providerEmail: ef?.providerEmail ?? null,
-    insurer: ef?.insurer ?? null,
-    insurerPhone: ef?.insurerPhone ?? null,
-    insurerEmail: ef?.insurerEmail ?? null,
-    billedAmount: ef?.billedAmount ?? null,
-    insurerPaid: ef?.insurerPaid ?? null,
-    patientResponsibility: ef?.patientResponsibility ?? null,
-    denialReason: ef?.denialReason ?? null,
-    cptCodes: Array.isArray(ef?.cptCodes) ? ef.cptCodes : [],
-    serviceDate: ef?.serviceDate ?? null,
-    claimNumber: ef?.claimNumber ?? null,
-    memberID: ef?.memberID ?? null,
-  };
-
-  const errorCount = detectedIssues.filter(
-    (i) => i.severity === "error",
-  ).length;
-  const warningCount = detectedIssues.filter(
-    (i) => i.severity === "warning",
-  ).length;
-  const potentialSavings = getPotentialSavings(result);
+  const activeStage = showActionCenter ? 3 : result.detectedIssues.length > 0 ? 2 : 1
+  const potentialSavings = getPotentialSavings(result)
+  const nextAction = result.recommendedActions[0]
+  const highlightDetails = [
+    {
+      label: "Potential savings",
+      value: formatCurrency(potentialSavings),
+    },
+    {
+      label: "Issues found",
+      value: `${result.detectedIssues.length}`,
+    },
+    {
+      label: "Recommended path",
+      value: nextAction ? CATEGORY_LABELS[nextAction.category] : "Review findings",
+    },
+  ]
 
   return (
-    <div className="space-y-6">
-      <div className="grid gap-3 lg:grid-cols-[1.4fr_1fr_1fr]">
-        <SummaryCard
-          title="Potential savings"
-          value={formatCurrency(potentialSavings)}
-          subtext="Estimated recoverable amount based on current findings"
-          emphasis
-        />
-        <SummaryCard
-          title="Issues found"
-          value={String(detectedIssues.length)}
-          subtext={`${errorCount} critical · ${warningCount} warning`}
-        />
-        <SummaryCard
-          title="Recommended action"
-          value={recommendedAction(result)}
-          subtext="Best next step from current audit results"
-        />
-      </div>
-
-      <div className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-[var(--border)] bg-slate-50 px-4 py-3">
-        <div>
-          <p className="text-xs text-[var(--muted-foreground)]">
-            Case ID: {caseId}
-          </p>
-          <p className="text-xs text-[var(--muted-foreground)]">
-            Analyzed {new Date(analyzedAt).toLocaleString()}
-          </p>
-        </div>
-        <div className="flex gap-2">
-          {errorCount > 0 && (
-            <Badge variant="error">{errorCount} critical</Badge>
-          )}
-          {warningCount > 0 && (
-            <Badge variant="warning">{warningCount} warning</Badge>
-          )}
-          {detectedIssues.length === 0 && (
-            <Badge variant="secondary">No issues detected</Badge>
-          )}
-        </div>
-      </div>
-
-      {/* Section 1: Extracted Fields */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <DocumentIcon />
-            Extracted Fields
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-            <Field label="Provider" value={extractedFields.provider} />
-            <Field
-              label="Provider Phone"
-              value={extractedFields.providerPhone}
-            />
-            <Field
-              label="Provider Email"
-              value={extractedFields.providerEmail}
-            />
-            <Field label="Insurer" value={extractedFields.insurer} />
-            <Field label="Insurer Phone" value={extractedFields.insurerPhone} />
-            <Field label="Insurer Email" value={extractedFields.insurerEmail} />
-            <Field
-              label="Service Date"
-              value={formatDate(extractedFields.serviceDate)}
-            />
-            <Field label="Claim Number" value={extractedFields.claimNumber} />
-            <Field label="Member ID" value={extractedFields.memberID} />
-            <Field
-              label="Billed Amount"
-              value={formatCurrency(extractedFields.billedAmount)}
-            />
-            <Field
-              label="Insurer Paid"
-              value={formatCurrency(extractedFields.insurerPaid)}
-            />
-            <Field
-              label="Your Responsibility"
-              value={formatCurrency(extractedFields.patientResponsibility)}
-              isHighlight
-            />
-          </div>
-
-          {extractedFields.cptCodes.length > 0 && (
-            <>
-              <Separator className="my-4" />
-              <div>
-                <p className="mb-2 text-sm font-medium text-[var(--muted-foreground)]">
-                  CPT Codes
-                </p>
-                <div className="flex flex-wrap gap-2">
-                  {extractedFields.cptCodes.map((code) => (
-                    <Badge key={code} variant="outline" className="font-mono">
-                      {code}
-                    </Badge>
-                  ))}
-                </div>
-              </div>
-            </>
-          )}
-
-          {extractedFields.denialReason && (
-            <>
-              <Separator className="my-4" />
-              <Field
-                label="Denial Reason"
-                value={extractedFields.denialReason}
-                isFullWidth
-              />
-            </>
-          )}
-        </CardContent>
-      </Card>
-
-      {/* Section 2: Issues Detected */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <AlertIcon />
-            Issues Detected
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          {detectedIssues.length === 0 ? (
-            <p className="text-sm text-[var(--muted-foreground)]">
-              No billing issues detected in this document.
+    <div className={cn("space-y-6", progressive && "fade-rise")}>
+      <section className="paper-panel p-6 md:p-8">
+        <div className="flex flex-wrap items-start justify-between gap-5">
+          <div className="max-w-[42rem]">
+            <div className="eyebrow">Case review</div>
+            <h2 className="display-md mt-4 text-balance">
+              {result.extractedFields.provider || "Your claim review is ready."}
+            </h2>
+            <p className="body-copy mt-5">
+              {result.explanation || "We translated the uploaded documents into a clearer review of what may need attention."}
             </p>
-          ) : (
-            <div className="space-y-3">
-              {detectedIssues.map((issue, i) => (
-                <IssueCard
-                  key={i}
-                  issue={issue}
-                  potentialSavings={potentialSavings}
-                />
-              ))}
-            </div>
-          )}
-        </CardContent>
-      </Card>
-
-      {/* Section 3: Action Center */}
-      <Card className="shadow-none">
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <CheckIcon />
-            Action center
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          {recommendedActions.length === 0 ? (
-            <p className="text-sm text-[var(--muted-foreground)]">
-              No specific actions recommended.
-            </p>
-          ) : (
-            <ol className="mb-4 space-y-3">
-              {recommendedActions.map((action, i) => (
-                <li
-                  key={i}
-                  className="flex items-start gap-3 rounded-lg border border-[var(--border)] bg-slate-50 p-3"
-                >
-                  <span className="mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-slate-900 text-xs font-semibold text-white">
-                    {i + 1}
-                  </span>
-                  <div className="flex flex-col gap-2">
-                    <span
-                      className={`w-fit rounded-full border px-2.5 py-0.5 text-xs font-semibold ${CATEGORY_COLORS[action.category]}`}
-                    >
-                      {CATEGORY_LABELS[action.category]}
-                    </span>
-                    <p className="text-sm text-[var(--foreground)]">
-                      {action.action}
-                    </p>
-                  </div>
-                </li>
-              ))}
-            </ol>
-          )}
-
-          <div className="grid gap-3 md:grid-cols-2">
-            <div className="rounded-lg border border-[var(--border)] bg-white p-4">
-              <p className="text-sm font-semibold text-slate-900">
-                Email Providers
-              </p>
-              <p className="mt-2 text-sm leading-6 text-slate-600">
-                Open a prefilled dispute email draft in a dedicated composer
-                page, then edit and send with Gmail.
-              </p>
-              <Button asChild className="mt-3 w-full">
-                <Link
-                  href={`/action/email?caseId=${encodeURIComponent(caseId)}`}
-                  target="_blank"
-                  rel="noreferrer"
-                >
-                  Open Email Composer
-                </Link>
-              </Button>
-            </div>
-            <div className="rounded-lg border border-[var(--border)] bg-white p-4">
-              <p className="text-sm font-semibold text-slate-900">
-                Call Providers
-              </p>
-              <p className="mt-2 text-sm leading-6 text-slate-600">
-                Prepare and place guided provider calls based on detected
-                issues.
-              </p>
-              {!showActionCenter ? (
-                <Button
-                  onClick={() => setShowActionCenter(true)}
-                  className="mt-3 w-full gap-2 bg-blue-600 text-white hover:bg-blue-700"
-                >
-                  <LightningIcon />
-                  Take Action
-                </Button>
+            <div className="mt-6 flex flex-wrap gap-3">
+              <span className="status-chip stone">Case {result.caseId.slice(0, 8)}</span>
+              <span className="status-chip teal">Analyzed {formatDateTime(result.analyzedAt)}</span>
+              {result.detectedIssues.length > 0 ? (
+                <span className="status-chip coral">{result.detectedIssues.length} issues surfaced</span>
               ) : (
-                <Button
-                  onClick={() => setShowActionCenter(false)}
-                  variant="outline"
-                  className="mt-3 w-full"
-                >
-                  Hide Action Center
-                </Button>
+                <span className="status-chip stone">No issues detected</span>
               )}
             </div>
           </div>
-        </CardContent>
-      </Card>
 
-      {showActionCenter && (
-        <ActionCenter
-          analysis={result}
-          onClose={() => setShowActionCenter(false)}
-        />
-      )}
+          <div className="flex flex-wrap items-center gap-3">
+            <Button asChild variant="outline" size="lg">
+              <Link href={`/action/email?caseId=${encodeURIComponent(result.caseId)}`} target="_blank" rel="noreferrer">
+                Open email composer
+                <Mail className="h-4 w-4" />
+              </Link>
+            </Button>
+            <Button size="lg" onClick={() => setShowActionCenter((current) => !current)}>
+              {showActionCenter ? "Hide action center" : "Prepare next steps"}
+            </Button>
+          </div>
+        </div>
 
-      {/* Section 4: Relevant Legal Protections */}
-      {(result.laws ?? []).length > 0 && (
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <ScaleIcon />
-              Relevant Legal Protections
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-3">
-              {(result.laws ?? []).map((law, i) => (
+        <div className="mt-8 grid gap-4 md:grid-cols-3">
+          {highlightDetails.map((item) => (
+            <div
+              key={item.label}
+              className="rounded-[1.4rem] border border-[var(--color-stone-200)] bg-[color-mix(in_srgb,var(--color-white)_76%,var(--color-stone-100)_24%)] p-4"
+            >
+              <p className="text-[0.75rem] uppercase tracking-[0.16em] text-[var(--color-ink-500)]">{item.label}</p>
+              <p className="mt-3 text-base font-semibold text-[var(--color-ink-900)]">{item.value}</p>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      <section className="grid gap-6 xl:grid-cols-[14rem_minmax(0,1fr)_20rem]">
+        <aside className="paper-panel h-fit p-5 xl:sticky xl:top-28">
+          <div className="eyebrow">Claim timeline</div>
+          <div className="mt-5 space-y-3">
+            {timelineStages.map((stage, index) => {
+              const done = index < activeStage
+              const current = index === activeStage
+
+              return (
+                <div key={stage} className="flex gap-3">
+                  <div className="flex flex-col items-center">
+                    <span
+                      className={cn(
+                        "flex h-6 w-6 items-center justify-center rounded-full border text-[0.72rem]",
+                        done || current
+                          ? "border-[var(--color-teal-500)] bg-[var(--color-teal-500)] text-white"
+                          : "border-[var(--color-stone-200)] bg-[var(--color-white)] text-[var(--color-ink-500)]"
+                      )}
+                    >
+                      {done ? <CircleCheckBig className="h-3.5 w-3.5" /> : index + 1}
+                    </span>
+                    {index < timelineStages.length - 1 ? (
+                      <span className={cn("mt-2 h-9 w-px", done ? "bg-[var(--color-teal-500)]" : "bg-[var(--color-stone-200)]")} />
+                    ) : null}
+                  </div>
+                  <div className="pt-0.5">
+                    <p className={current ? "text-sm font-semibold text-[var(--color-ink-900)]" : "text-sm text-[var(--color-ink-700)]"}>
+                      {stage}
+                    </p>
+                    {current ? <p className="mt-1 text-[0.82rem] text-[var(--color-teal-700)]">Current stage</p> : null}
+                  </div>
+                </div>
+              )
+            })}
+          </div>
+        </aside>
+
+        <div className="space-y-6">
+          <section className="paper-panel overflow-hidden">
+            <div className="border-b border-[var(--color-stone-200)] px-5 py-4 md:px-6">
+              <div className="eyebrow">Charge review</div>
+              <h3 className="section-title mt-3 text-[1.55rem]">A guided table of what the case needs you to understand first.</h3>
+            </div>
+
+            <div className="hidden grid-cols-[minmax(0,1.75fr)_0.7fr_0.8fr_0.9fr] gap-3 border-b border-[var(--color-stone-200)] px-5 py-3 text-[0.72rem] uppercase tracking-[0.16em] text-[var(--color-ink-500)] md:grid">
+              <span>Charge</span>
+              <span>Billed</span>
+              <span>Patient</span>
+              <span>Status</span>
+            </div>
+
+            <div className="divide-y divide-[var(--color-stone-200)]">
+              {reviewRows.map((row, index) => {
+                const active = index === selectedIssueIndex
+
+                return (
+                  <button
+                    key={`${row.title}-${index}`}
+                    type="button"
+                    onClick={() => setSelectedIssueIndex(index)}
+                    className={cn(
+                      "block w-full px-5 py-4 text-left transition-colors md:px-6",
+                      active
+                        ? "bg-[color-mix(in_srgb,var(--color-sage-100)_48%,var(--color-white)_52%)]"
+                        : "hover:bg-[color-mix(in_srgb,var(--color-stone-100)_58%,var(--color-white)_42%)]"
+                    )}
+                  >
+                    <div className="grid gap-3 md:grid-cols-[minmax(0,1.75fr)_0.7fr_0.8fr_0.9fr] md:items-start">
+                      <div className="min-w-0">
+                        <p className="text-sm font-semibold text-[var(--color-ink-900)]">{row.title}</p>
+                        <p className="mt-1 text-sm leading-6 text-[var(--color-ink-700)]">{row.subtitle}</p>
+                        <p className="mt-2 text-[0.82rem] text-[var(--color-ink-500)]">Service date {formatDate(result.extractedFields.serviceDate)}</p>
+                      </div>
+                      <div className="text-sm text-[var(--color-ink-700)] md:pt-0.5">{row.billed}</div>
+                      <div className="text-sm text-[var(--color-ink-700)] md:pt-0.5">{row.patient}</div>
+                      <div className="md:pt-0.5">
+                        <span className={row.status === "Issue found" ? "status-chip coral" : row.status === "Needs review" ? "status-chip stone" : "status-chip teal"}>
+                          {row.status}
+                        </span>
+                      </div>
+                    </div>
+                  </button>
+                )
+              })}
+            </div>
+          </section>
+
+          <section className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,0.92fr)]">
+            <div className="paper-panel p-6 md:p-7">
+              <div className="eyebrow">Recommended actions</div>
+              <div className="mt-4 space-y-4">
+                {result.recommendedActions.length > 0 ? (
+                  result.recommendedActions.map((action, index) => (
+                    <div
+                      key={`${action.category}-${index}`}
+                      className="rounded-[1.35rem] border border-[var(--color-stone-200)] bg-[color-mix(in_srgb,var(--color-white)_76%,var(--color-stone-100)_24%)] p-4"
+                    >
+                      <div className="flex flex-wrap items-center justify-between gap-3">
+                        <p className="text-sm font-semibold text-[var(--color-ink-900)]">{CATEGORY_LABELS[action.category]}</p>
+                        <span className="status-chip teal">Step {index + 1}</span>
+                      </div>
+                      <p className="mt-3 text-sm leading-6 text-[var(--color-ink-700)]">{action.action}</p>
+                    </div>
+                  ))
+                ) : (
+                  <div className="rounded-[1.35rem] border border-[var(--color-stone-200)] bg-[color-mix(in_srgb,var(--color-white)_76%,var(--color-stone-100)_24%)] p-4 text-sm text-[var(--color-ink-700)]">
+                    No specific actions were generated for this case.
+                  </div>
+                )}
+              </div>
+            </div>
+
+            <div className="paper-panel p-6 md:p-7">
+              <div className="eyebrow">Case details</div>
+              <div className="mt-4 grid gap-3 sm:grid-cols-2">
+                <Field label="Provider" value={result.extractedFields.provider} />
+                <Field label="Insurer" value={result.extractedFields.insurer} />
+                <Field label="Service date" value={formatDate(result.extractedFields.serviceDate)} />
+                <Field label="Claim number" value={result.extractedFields.claimNumber} />
+                <Field label="Member ID" value={result.extractedFields.memberID} />
+                <Field label="Patient responsibility" value={formatCurrency(result.extractedFields.patientResponsibility)} />
+              </div>
+
+              {result.extractedFields.cptCodes.length > 0 ? (
+                <div className="mt-5">
+                  <p className="text-[0.75rem] uppercase tracking-[0.16em] text-[var(--color-ink-500)]">CPT codes</p>
+                  <div className="mt-3 flex flex-wrap gap-2">
+                    {result.extractedFields.cptCodes.map((code) => (
+                      <span
+                        key={code}
+                        className="rounded-full border border-[var(--color-stone-200)] bg-[color-mix(in_srgb,var(--color-white)_74%,var(--color-stone-100)_26%)] px-3 py-1 text-sm text-[var(--color-ink-700)]"
+                      >
+                        {code}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              ) : null}
+            </div>
+          </section>
+        </div>
+
+        <aside className="sage-panel h-fit p-6 xl:sticky xl:top-28">
+          <div className="eyebrow">Explanation panel</div>
+          <h3 className="section-title mt-3 text-[1.55rem]">
+            {selectedIssue ? ISSUE_LABELS[selectedIssue.type] : "No major issues were found."}
+          </h3>
+          <p className="mt-4 text-sm leading-6 text-[var(--color-ink-700)]">
+            {selectedReasoning?.summary || result.explanation || "The uploaded documents did not surface a specific billing issue."}
+          </p>
+
+          <div className="mt-6 space-y-4">
+            <InfoLine icon={Clock3} text={`Reviewed ${formatDateTime(result.analyzedAt)}`} />
+            <InfoLine icon={FileText} text={`Provider bill and insurer response compared`} />
+            <InfoLine icon={ShieldCheck} text={`You can review all drafts before anything is used`} />
+          </div>
+
+          {selectedReasoning ? (
+            <>
+              <div className="mt-6">
+                <p className="text-[0.75rem] uppercase tracking-[0.16em] text-[var(--color-ink-500)]">Evidence notes</p>
+                <ul className="mt-3 space-y-3">
+                  {selectedReasoning.evidence.map((item) => (
+                    <li key={item} className="flex gap-3 text-sm leading-6 text-[var(--color-ink-700)]">
+                      <span className="mt-2 h-1.5 w-1.5 rounded-full bg-[var(--color-coral-400)]" />
+                      <span>{item}</span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+
+              <div className="mt-6 rounded-[1.35rem] border border-[var(--color-stone-200)] bg-[color-mix(in_srgb,var(--color-white)_64%,var(--color-stone-100)_36%)] p-4">
+                <p className="text-sm font-semibold text-[var(--color-ink-900)]">Recommended claim action</p>
+                <p className="mt-2 text-sm leading-6 text-[var(--color-ink-700)]">{selectedReasoning.next}</p>
+              </div>
+            </>
+          ) : null}
+        </aside>
+      </section>
+
+      <section className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_minmax(0,0.8fr)]">
+        {result.laws.length > 0 ? (
+          <div className="paper-panel p-6 md:p-7">
+            <div className="flex items-center gap-2 text-[var(--color-ink-900)]">
+              <Scale className="h-4 w-4 text-[var(--color-teal-700)]" />
+              <div className="eyebrow !text-[var(--color-teal-700)]">Relevant legal protections</div>
+            </div>
+            <div className="mt-5 space-y-4">
+              {result.laws.map((law) => (
                 <div
-                  key={i}
-                  className="rounded-lg border border-indigo-200 bg-indigo-50 p-3"
+                  key={law.title}
+                  className="rounded-[1.35rem] border border-[var(--color-stone-200)] bg-[color-mix(in_srgb,var(--color-white)_76%,var(--color-stone-100)_24%)] p-4"
                 >
-                  <p className="text-sm font-semibold text-indigo-900">
-                    {law.title}
-                  </p>
-                  <p className="mt-1 text-sm text-[var(--foreground)]">
-                    {law.description}
-                  </p>
+                  <p className="text-sm font-semibold text-[var(--color-ink-900)]">{law.title}</p>
+                  <p className="mt-2 text-sm leading-6 text-[var(--color-ink-700)]">{law.description}</p>
                 </div>
               ))}
             </div>
-          </CardContent>
-        </Card>
-      )}
+          </div>
+        ) : (
+          <div className="paper-panel p-6 md:p-7">
+            <div className="eyebrow">Case context</div>
+            <h3 className="section-title mt-3 text-[1.55rem]">This review is ready for the communication step.</h3>
+            <p className="mt-4 text-sm leading-6 text-[var(--color-ink-700)]">
+              Use the email composer or the action center to draft outreach, gather missing details, and move the case into a more formal dispute path.
+            </p>
+          </div>
+        )}
 
-      {/* Section 5: Additional Details */}
-      <details className="rounded-lg border border-[var(--border)] bg-white">
-        <summary className="cursor-pointer list-none px-4 py-3 text-sm font-semibold text-slate-900">
-          Additional case details
-        </summary>
-        <div className="border-t border-[var(--border)] px-4 py-4">
-          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-            <Field label="Provider" value={extractedFields.provider} />
-            <Field label="Insurer" value={extractedFields.insurer} />
-            <Field
-              label="Service Date"
-              value={formatDate(extractedFields.serviceDate)}
+        <div className="sage-panel p-6">
+          <div className="eyebrow">Next moves</div>
+          <div className="mt-4 space-y-4">
+            <ActionLink
+              href={`/action/email?caseId=${encodeURIComponent(result.caseId)}`}
+              label="Draft provider or insurer email"
+              detail="Open the composer with this case ready to review."
+              icon={Mail}
+              external
             />
-            <Field label="Claim Number" value={extractedFields.claimNumber} />
-            <Field label="Member ID" value={extractedFields.memberID} />
-            <Field
-              label="Billed Amount"
-              value={formatCurrency(extractedFields.billedAmount)}
+            <ActionButton
+              onClick={() => setShowActionCenter((current) => !current)}
+              label={showActionCenter ? "Hide action center" : "Open action center"}
+              detail="Generate appeal drafts, call briefs, and guided outreach payloads."
+              icon={Phone}
             />
-            <Field
-              label="Insurer Paid"
-              value={formatCurrency(extractedFields.insurerPaid)}
-            />
-            <Field
-              label="Patient Responsibility"
-              value={formatCurrency(extractedFields.patientResponsibility)}
-              isHighlight
+            <ActionLink
+              href={`/analysis/${result.caseId}`}
+              label="Open full case page"
+              detail="Return to this case from the dashboard later."
+              icon={Landmark}
             />
           </div>
-
-          {extractedFields.cptCodes.length > 0 && (
-            <>
-              <Separator className="my-4" />
-              <div>
-                <p className="mb-2 text-sm font-medium text-[var(--muted-foreground)]">
-                  CPT Codes
-                </p>
-                <div className="flex flex-wrap gap-2">
-                  {extractedFields.cptCodes.map((code) => (
-                    <Badge key={code} variant="outline" className="font-mono">
-                      {code}
-                    </Badge>
-                  ))}
-                </div>
-              </div>
-            </>
-          )}
-
-          {extractedFields.denialReason && (
-            <>
-              <Separator className="my-4" />
-              <Field
-                label="Denial Reason"
-                value={extractedFields.denialReason}
-                isFullWidth
-              />
-            </>
-          )}
-
-          <Separator className="my-4" />
-          <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
-            Case explanation
-          </p>
-          <p className="mt-2 text-sm leading-relaxed text-[var(--foreground)]">
-            {explanation}
-          </p>
         </div>
-      </details>
+      </section>
+
+      {showActionCenter ? (
+        <section className="paper-panel p-4 md:p-6">
+          <div className="mb-5 flex flex-wrap items-end justify-between gap-4">
+            <div>
+              <div className="eyebrow">Action center</div>
+              <h3 className="section-title mt-3 text-[1.6rem]">Draft the next communication with the case details already in place.</h3>
+            </div>
+            <span className="status-chip teal">
+              <Sparkles className="h-3.5 w-3.5" />
+              Drafts stay reviewable
+            </span>
+          </div>
+          <ActionCenter key={result.caseId} analysis={result} onClose={() => setShowActionCenter(false)} />
+        </section>
+      ) : null}
     </div>
-  );
+  )
 }
 
-function SummaryCard({
-  title,
-  value,
-  subtext,
-  emphasis = false,
-}: {
-  title: string;
-  value: string;
-  subtext: string;
-  emphasis?: boolean;
-}) {
+function Field({ label, value }: { label: string; value: string | null }) {
   return (
-    <div className="rounded-lg border border-[var(--border)] bg-slate-50 p-4">
-      <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
-        {title}
-      </p>
-      <p
-        className={`mt-2 ${emphasis ? "text-3xl" : "text-2xl"} font-semibold tracking-tight text-slate-900`}
-      >
-        {value}
-      </p>
-      <p className="mt-1 text-xs text-slate-600">{subtext}</p>
+    <div className="rounded-[1.15rem] border border-[var(--color-stone-200)] bg-[color-mix(in_srgb,var(--color-white)_72%,var(--color-stone-100)_28%)] p-4">
+      <p className="text-[0.75rem] uppercase tracking-[0.16em] text-[var(--color-ink-500)]">{label}</p>
+      <p className="mt-2 text-sm font-semibold text-[var(--color-ink-900)]">{value || "Not available"}</p>
     </div>
-  );
+  )
 }
 
-function ActionStub({
-  title,
-  description,
+function InfoLine({
+  icon: Icon,
+  text,
 }: {
-  title: string;
-  description: string;
+  icon: typeof Clock3
+  text: string
 }) {
   return (
-    <div className="rounded-lg border border-[var(--border)] bg-white p-4">
-      <p className="text-sm font-semibold text-slate-900">{title}</p>
-      <p className="mt-2 text-sm leading-6 text-slate-600">{description}</p>
-      <Button disabled variant="outline" className="mt-3 w-full">
-        Coming soon
-      </Button>
-    </div>
-  );
-}
-
-function Field({
-  label,
-  value,
-  isHighlight = false,
-  isFullWidth = false,
-}: {
-  label: string;
-  value: string | null;
-  isHighlight?: boolean;
-  isFullWidth?: boolean;
-}) {
-  return (
-    <div className={isFullWidth ? "col-span-full" : undefined}>
-      <p className="text-xs font-medium uppercase tracking-wide text-[var(--muted-foreground)]">
-        {label}
-      </p>
-      <p
-        className={`mt-0.5 text-sm ${isHighlight ? "font-semibold text-[var(--foreground)]" : "text-[var(--foreground)]"} ${!value ? "text-[var(--muted-foreground)]" : ""}`}
-      >
-        {value ?? "—"}
-      </p>
-    </div>
-  );
-}
-
-function IssueCard({
-  issue,
-  potentialSavings,
-}: {
-  issue: { type: IssueType; severity: IssueSeverity; description: string };
-  potentialSavings: number | null;
-}) {
-  const isError = issue.severity === "error";
-  const meta = ISSUE_REASONING[issue.type];
-
-  return (
-    <div
-      className={`rounded-lg border bg-white p-4 ${isError ? "border-red-200" : "border-amber-200"}`}
-    >
-      <div className="flex flex-wrap items-start justify-between gap-2">
-        <Badge variant={isError ? "error" : "warning"}>
-          {ISSUE_TYPE_LABELS[issue.type] ?? issue.type}
-        </Badge>
-        <span className="text-xs font-semibold uppercase tracking-wide text-slate-600">
-          {isError ? "Critical" : "Warning"}
-        </span>
+    <div className="flex items-center gap-3 text-sm text-[var(--color-ink-700)]">
+      <div className="flex h-9 w-9 items-center justify-center rounded-full bg-[color-mix(in_srgb,var(--color-white)_42%,var(--color-sage-100)_58%)] text-[var(--color-teal-700)]">
+        <Icon className="h-4 w-4" />
       </div>
-      <p className="mt-3 text-sm text-[var(--foreground)]">
-        {issue.description}
-      </p>
-      <p className="mt-2 text-sm text-slate-700">
-        <span className="font-medium">Why it matters:</span> {meta.why}
-      </p>
-      <p className="mt-1 text-sm text-slate-700">
-        <span className="font-medium">Recommended next step:</span> {meta.next}
-      </p>
-      <p className="mt-1 text-sm text-slate-700">
-        <span className="font-medium">Impact estimate:</span>{" "}
-        {formatCurrency(potentialSavings)}
-      </p>
+      <span>{text}</span>
     </div>
-  );
+  )
 }
 
-function DocumentIcon() {
+function ActionLink({
+  href,
+  label,
+  detail,
+  icon: Icon,
+  external,
+}: {
+  href: string
+  label: string
+  detail: string
+  icon: typeof Mail
+  external?: boolean
+}) {
   return (
-    <svg
-      className="h-5 w-5 text-slate-600"
-      fill="none"
-      viewBox="0 0 24 24"
-      stroke="currentColor"
+    <Link
+      href={href}
+      target={external ? "_blank" : undefined}
+      rel={external ? "noreferrer" : undefined}
+      className="block rounded-[1.35rem] border border-[var(--color-stone-200)] bg-[color-mix(in_srgb,var(--color-white)_62%,var(--color-stone-100)_38%)] p-4 transition-colors hover:bg-[color-mix(in_srgb,var(--color-white)_48%,var(--color-sage-100)_52%)]"
     >
-      <path
-        strokeLinecap="round"
-        strokeLinejoin="round"
-        strokeWidth={2}
-        d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
-      />
-    </svg>
-  );
+      <div className="flex items-start gap-3">
+        <div className="flex h-10 w-10 items-center justify-center rounded-full bg-[color-mix(in_srgb,var(--color-white)_34%,var(--color-sage-100)_66%)] text-[var(--color-teal-700)]">
+          <Icon className="h-4 w-4" />
+        </div>
+        <div className="min-w-0">
+          <p className="text-sm font-semibold text-[var(--color-ink-900)]">{label}</p>
+          <p className="mt-1 text-sm leading-6 text-[var(--color-ink-700)]">{detail}</p>
+          <div className="mt-2 inline-flex items-center gap-2 text-sm font-semibold text-[var(--color-teal-700)]">
+            Continue
+            <ArrowRight className="h-4 w-4" />
+          </div>
+        </div>
+      </div>
+    </Link>
+  )
 }
 
-function AlertIcon() {
+function ActionButton({
+  onClick,
+  label,
+  detail,
+  icon: Icon,
+}: {
+  onClick: () => void
+  label: string
+  detail: string
+  icon: typeof Phone
+}) {
   return (
-    <svg
-      className="h-5 w-5 text-slate-600"
-      fill="none"
-      viewBox="0 0 24 24"
-      stroke="currentColor"
+    <button
+      type="button"
+      onClick={onClick}
+      className="w-full rounded-[1.35rem] border border-[var(--color-stone-200)] bg-[color-mix(in_srgb,var(--color-white)_62%,var(--color-stone-100)_38%)] p-4 text-left transition-colors hover:bg-[color-mix(in_srgb,var(--color-white)_48%,var(--color-sage-100)_52%)]"
     >
-      <path
-        strokeLinecap="round"
-        strokeLinejoin="round"
-        strokeWidth={2}
-        d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"
-      />
-    </svg>
-  );
-}
-
-function CheckIcon() {
-  return (
-    <svg
-      className="h-5 w-5 text-slate-600"
-      fill="none"
-      viewBox="0 0 24 24"
-      stroke="currentColor"
-    >
-      <path
-        strokeLinecap="round"
-        strokeLinejoin="round"
-        strokeWidth={2}
-        d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"
-      />
-    </svg>
-  );
-}
-
-function ScaleIcon() {
-  return (
-    <svg
-      className="h-5 w-5 text-indigo-600"
-      fill="none"
-      viewBox="0 0 24 24"
-      stroke="currentColor"
-    >
-      <path
-        strokeLinecap="round"
-        strokeLinejoin="round"
-        strokeWidth={2}
-        d="M3 6l3 1m0 0l-3 9a5.002 5.002 0 006.001 0M6 7l3 9M6 7l6-2m6 2l3-1m-3 1l-3 9a5.002 5.002 0 006.001 0M18 7l3 9m-3-9l-6-2m0-2v2m0 16V5m0 16H9m3 0h3"
-      />
-    </svg>
-  );
-}
-
-function LightningIcon() {
-  return (
-    <svg
-      className="h-5 w-5 text-slate-600"
-      fill="none"
-      viewBox="0 0 24 24"
-      stroke="currentColor"
-    >
-      <path
-        strokeLinecap="round"
-        strokeLinejoin="round"
-        strokeWidth={2}
-        d="M4 6h7m0 0L8 3m3 3L8 9m9 9h-7m0 0l3-3m-3 3l3 3M4 18h7m2-12h7"
-      />
-    </svg>
-  );
+      <div className="flex items-start gap-3">
+        <div className="flex h-10 w-10 items-center justify-center rounded-full bg-[color-mix(in_srgb,var(--color-white)_34%,var(--color-sage-100)_66%)] text-[var(--color-teal-700)]">
+          <Icon className="h-4 w-4" />
+        </div>
+        <div className="min-w-0">
+          <p className="text-sm font-semibold text-[var(--color-ink-900)]">{label}</p>
+          <p className="mt-1 text-sm leading-6 text-[var(--color-ink-700)]">{detail}</p>
+          <div className="mt-2 inline-flex items-center gap-2 text-sm font-semibold text-[var(--color-teal-700)]">
+            Continue
+            <ArrowRight className="h-4 w-4" />
+          </div>
+        </div>
+      </div>
+    </button>
+  )
 }

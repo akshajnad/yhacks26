@@ -158,7 +158,6 @@ function buildDynamicVariables(
   systemPrompt: string,
   refs: ReturnType<typeof mergeReferenceData>
 ): Record<string, string> {
-  const ef = brief.analysis.extractedFields
   const opener = callBrief.openingScript
 
   const issueSummary = brief.analysis.detectedIssues

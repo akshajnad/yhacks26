@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useCallback, useEffect } from "react"
+import { useState, useCallback, useEffect, useMemo } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
@@ -1194,59 +1194,63 @@ export function ActionCenter({ analysis, onClose }: ActionCenterProps) {
   )
 
   // Apply contact overrides + missing field values to brief before passing to generators
-  const briefWithOverrides = brief
-    ? {
-        ...brief,
-        contactTargets: brief.contactTargets.map((t) => ({
-          ...t,
-          toEmail: overrides[t.id]?.toEmail ?? t.toEmail,
-          toNumber: overrides[t.id]?.toNumber ?? t.toNumber,
-        })),
-        patientContext: {
-          ...brief.patientContext,
-          fullName: missingFieldValues["patientName"] ?? brief.patientContext.fullName,
-          memberID: missingFieldValues["memberID"] ?? brief.patientContext.memberID,
-          claimNumber:
-            missingFieldValues["claimNumber"] ??
-            missingFieldValues["claimNumber / accountNumber"] ??
-            brief.patientContext.claimNumber,
-          accountNumber:
-            missingFieldValues["accountNumber"] ??
-            missingFieldValues["claimNumber / accountNumber"] ??
-            brief.patientContext.accountNumber,
-        },
-        documentContext: {
-          ...brief.documentContext,
-          serviceDate: missingFieldValues["serviceDate"] ?? brief.documentContext.serviceDate,
-          billIssueDate: missingFieldValues["billIssueDate"] ?? brief.documentContext.billIssueDate,
-          locationOfCare: missingFieldValues["locationOfCare"] ?? brief.documentContext.locationOfCare,
-          providerAddress: missingFieldValues["providerAddress"] ?? brief.documentContext.providerAddress,
-          insurerAddress: missingFieldValues["insurerAddress"] ?? brief.documentContext.insurerAddress,
-        },
-        analysis: {
-          ...brief.analysis,
-          extractedFields: {
-            ...brief.analysis.extractedFields,
-            patientName: missingFieldValues["patientName"] ?? brief.analysis.extractedFields.patientName,
-            patientAddress: missingFieldValues["patientAddress"] ?? brief.analysis.extractedFields.patientAddress,
-            memberID: missingFieldValues["memberID"] ?? brief.analysis.extractedFields.memberID,
-            claimNumber:
-              missingFieldValues["claimNumber"] ??
-              missingFieldValues["claimNumber / accountNumber"] ??
-              brief.analysis.extractedFields.claimNumber,
-            accountNumber:
-              missingFieldValues["accountNumber"] ??
-              missingFieldValues["claimNumber / accountNumber"] ??
-              brief.analysis.extractedFields.accountNumber,
-            serviceDate: missingFieldValues["serviceDate"] ?? brief.analysis.extractedFields.serviceDate,
-            billIssueDate: missingFieldValues["billIssueDate"] ?? brief.analysis.extractedFields.billIssueDate,
-            locationOfCare: missingFieldValues["locationOfCare"] ?? brief.analysis.extractedFields.locationOfCare,
-            providerAddress: missingFieldValues["providerAddress"] ?? brief.analysis.extractedFields.providerAddress,
-            insurerAddress: missingFieldValues["insurerAddress"] ?? brief.analysis.extractedFields.insurerAddress,
-          },
-        },
-      }
-    : null
+  const briefWithOverrides = useMemo(
+    () =>
+      brief
+        ? {
+            ...brief,
+            contactTargets: brief.contactTargets.map((t) => ({
+              ...t,
+              toEmail: overrides[t.id]?.toEmail ?? t.toEmail,
+              toNumber: overrides[t.id]?.toNumber ?? t.toNumber,
+            })),
+            patientContext: {
+              ...brief.patientContext,
+              fullName: missingFieldValues["patientName"] ?? brief.patientContext.fullName,
+              memberID: missingFieldValues["memberID"] ?? brief.patientContext.memberID,
+              claimNumber:
+                missingFieldValues["claimNumber"] ??
+                missingFieldValues["claimNumber / accountNumber"] ??
+                brief.patientContext.claimNumber,
+              accountNumber:
+                missingFieldValues["accountNumber"] ??
+                missingFieldValues["claimNumber / accountNumber"] ??
+                brief.patientContext.accountNumber,
+            },
+            documentContext: {
+              ...brief.documentContext,
+              serviceDate: missingFieldValues["serviceDate"] ?? brief.documentContext.serviceDate,
+              billIssueDate: missingFieldValues["billIssueDate"] ?? brief.documentContext.billIssueDate,
+              locationOfCare: missingFieldValues["locationOfCare"] ?? brief.documentContext.locationOfCare,
+              providerAddress: missingFieldValues["providerAddress"] ?? brief.documentContext.providerAddress,
+              insurerAddress: missingFieldValues["insurerAddress"] ?? brief.documentContext.insurerAddress,
+            },
+            analysis: {
+              ...brief.analysis,
+              extractedFields: {
+                ...brief.analysis.extractedFields,
+                patientName: missingFieldValues["patientName"] ?? brief.analysis.extractedFields.patientName,
+                patientAddress: missingFieldValues["patientAddress"] ?? brief.analysis.extractedFields.patientAddress,
+                memberID: missingFieldValues["memberID"] ?? brief.analysis.extractedFields.memberID,
+                claimNumber:
+                  missingFieldValues["claimNumber"] ??
+                  missingFieldValues["claimNumber / accountNumber"] ??
+                  brief.analysis.extractedFields.claimNumber,
+                accountNumber:
+                  missingFieldValues["accountNumber"] ??
+                  missingFieldValues["claimNumber / accountNumber"] ??
+                  brief.analysis.extractedFields.accountNumber,
+                serviceDate: missingFieldValues["serviceDate"] ?? brief.analysis.extractedFields.serviceDate,
+                billIssueDate: missingFieldValues["billIssueDate"] ?? brief.analysis.extractedFields.billIssueDate,
+                locationOfCare: missingFieldValues["locationOfCare"] ?? brief.analysis.extractedFields.locationOfCare,
+                providerAddress: missingFieldValues["providerAddress"] ?? brief.analysis.extractedFields.providerAddress,
+                insurerAddress: missingFieldValues["insurerAddress"] ?? brief.analysis.extractedFields.insurerAddress,
+              },
+            },
+          }
+        : null,
+    [brief, missingFieldValues, overrides]
+  )
 
   // ── Email draft handlers ─────────────────────────────────────────────────────
 
@@ -1371,19 +1375,19 @@ export function ActionCenter({ analysis, onClose }: ActionCenterProps) {
   // ── Render ───────────────────────────────────────────────────────────────────
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between rounded-lg border border-blue-200 bg-blue-50 px-4 py-3">
+      <div className="flex items-center justify-between rounded-[1.5rem] border border-[var(--color-stone-200)] bg-[color-mix(in_srgb,var(--color-white)_72%,var(--color-sage-100)_28%)] px-4 py-4">
         <div className="flex items-center gap-2">
           <LightningIcon />
           <div>
-            <p className="text-sm font-semibold text-blue-900">Action Center</p>
-            <p className="text-xs text-blue-700">Case {analysis.caseId.slice(0, 8)}</p>
+            <p className="text-sm font-semibold text-[var(--color-ink-900)]">Action center</p>
+            <p className="text-xs text-[var(--color-ink-700)]">Case {analysis.caseId.slice(0, 8)}</p>
           </div>
         </div>
         <button
           onClick={onClose}
-          className="text-blue-500 hover:text-blue-700"
+          className="text-[var(--color-ink-500)] transition-colors hover:text-[var(--color-ink-900)]"
           aria-label="Close Action Center"
         >
           <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -1401,20 +1405,20 @@ export function ActionCenter({ analysis, onClose }: ActionCenterProps) {
       {brief && (
         <>
           {/* Tab bar */}
-          <div className="flex flex-wrap gap-1 border-b border-[var(--border)] pb-0">
+          <div className="flex flex-wrap gap-2 border-b border-[var(--border)] pb-3">
             {tabs.map((tab) => (
               <button
                 key={tab.id}
                 onClick={() => setActiveTab(tab.id)}
-                className={`flex items-center gap-1.5 rounded-t-md px-3 py-2 text-xs font-medium transition-colors ${
+                className={`flex items-center gap-1.5 rounded-full px-3 py-2 text-xs font-medium transition-colors ${
                   activeTab === tab.id
-                    ? "border border-b-white border-[var(--border)] bg-white text-slate-900"
-                    : "text-slate-500 hover:text-slate-700"
+                    ? "border border-[var(--color-stone-200)] bg-[color-mix(in_srgb,var(--color-white)_68%,var(--color-sage-100)_32%)] text-[var(--color-ink-900)]"
+                    : "bg-[color-mix(in_srgb,var(--color-white)_62%,var(--color-stone-100)_38%)] text-[var(--color-ink-700)] hover:bg-[var(--color-stone-100)] hover:text-[var(--color-ink-900)]"
                 }`}
               >
                 {tab.label}
                 {tab.badge && (
-                  <span className="rounded-full bg-amber-100 px-1.5 py-0.5 text-[10px] text-amber-700">
+                  <span className="rounded-full bg-[color-mix(in_srgb,var(--color-coral-400)_12%,var(--color-white)_88%)] px-1.5 py-0.5 text-[10px] text-[var(--color-coral-500)]">
                     {tab.badge}
                   </span>
                 )}
@@ -1497,7 +1501,7 @@ export function ActionCenter({ analysis, onClose }: ActionCenterProps) {
 
           <Separator />
           <p className="text-xs text-[var(--muted-foreground)]">
-            Email drafts are for review only — no emails are sent. Calls are placed via ElevenLabs when credentials are configured.
+            Email drafts are for review only. Calls are placed via ElevenLabs only when credentials are configured.
           </p>
         </>
       )}
@@ -1507,7 +1511,7 @@ export function ActionCenter({ analysis, onClose }: ActionCenterProps) {
 
 function LightningIcon() {
   return (
-    <svg className="h-4 w-4 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+    <svg className="h-4 w-4 text-[var(--color-teal-600)]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
     </svg>
   )

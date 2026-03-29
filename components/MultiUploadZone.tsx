@@ -1,6 +1,7 @@
 "use client"
 
 import { useCallback, useRef, useState } from "react"
+import { FileStack, FileText, ShieldCheck, UploadCloud, X } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
 import type { AnalysisResult } from "@/types/analysis"
@@ -13,36 +14,59 @@ interface MultiUploadZoneProps {
 const ACCEPTED_TYPES = ["application/pdf", "image/jpeg", "image/jpg", "image/png", "image/webp"]
 const ACCEPTED_DISPLAY = "PDF, JPG, PNG, WebP"
 const INVESTIGATION_STEPS = [
-  "Parsing medical bill",
-  "Parsing insurance EOB",
-  "Comparing billing chain",
-  "Identifying likely issues",
-  "Generating recommended next steps",
+  "Reading the provider bill",
+  "Reading the insurer response",
+  "Comparing responsibility and denials",
+  "Identifying likely billing issues",
+  "Preparing the claim review workspace",
 ]
 
 interface FileSlot {
   key: "bill" | "eob" | "denialLetter"
   label: string
   description: string
+  detail: string
   required: boolean
 }
 
 const FILE_SLOTS: FileSlot[] = [
-  { key: "bill", label: "Medical Bill", description: "Upload your medical bill or statement", required: true },
-  { key: "eob", label: "Explanation of Benefits (EOB)", description: "Upload the EOB from your insurer", required: true },
-  { key: "denialLetter", label: "Denial Letter", description: "Upload if your claim was denied", required: false },
+  {
+    key: "bill",
+    label: "Medical bill",
+    description: "Upload the provider bill or statement.",
+    detail: "This is the document we compare against the insurer response.",
+    required: true,
+  },
+  {
+    key: "eob",
+    label: "Explanation of benefits",
+    description: "Upload the EOB from your insurer.",
+    detail: "This tells us what the plan says it covered and what may still be your responsibility.",
+    required: true,
+  },
+  {
+    key: "denialLetter",
+    label: "Denial letter",
+    description: "Add a denial letter if you received one.",
+    detail: "Optional, but useful when coverage was rejected or a claim was closed.",
+    required: false,
+  },
 ]
 
 export function MultiUploadZone({ onResult, onError }: MultiUploadZoneProps) {
-  const [files, setFiles] = useState<Record<string, File | null>>({
+  const [files, setFiles] = useState<Record<FileSlot["key"], File | null>>({
     bill: null,
     eob: null,
     denialLetter: null,
   })
-  const [dragging, setDragging] = useState<string | null>(null)
+  const [dragging, setDragging] = useState<FileSlot["key"] | null>(null)
   const [isLoading, setIsLoading] = useState(false)
   const [investigationStep, setInvestigationStep] = useState(0)
-  const inputRefs = useRef<Record<string, HTMLInputElement | null>>({})
+  const inputRefs = useRef<Record<FileSlot["key"], HTMLInputElement | null>>({
+    bill: null,
+    eob: null,
+    denialLetter: null,
+  })
 
   const canAnalyze = files.bill !== null && files.eob !== null && !isLoading
 
@@ -62,16 +86,16 @@ export function MultiUploadZone({ onResult, onError }: MultiUploadZoneProps) {
   )
 
   const handleFile = useCallback(
-    (slotKey: string, file: File) => {
+    (slotKey: FileSlot["key"], file: File) => {
       if (!validateFile(file)) return
       setFiles((prev) => ({ ...prev, [slotKey]: file }))
       onError("")
     },
-    [validateFile, onError]
+    [onError, validateFile]
   )
 
   const handleDrop = useCallback(
-    (slotKey: string, e: React.DragEvent) => {
+    (slotKey: FileSlot["key"], e: React.DragEvent) => {
       e.preventDefault()
       setDragging(null)
       const dropped = e.dataTransfer.files[0]
@@ -80,7 +104,7 @@ export function MultiUploadZone({ onResult, onError }: MultiUploadZoneProps) {
     [handleFile]
   )
 
-  const clearFile = (slotKey: string) => {
+  const clearFile = (slotKey: FileSlot["key"]) => {
     setFiles((prev) => ({ ...prev, [slotKey]: null }))
     const input = inputRefs.current[slotKey]
     if (input) input.value = ""
@@ -88,9 +112,11 @@ export function MultiUploadZone({ onResult, onError }: MultiUploadZoneProps) {
 
   const handleAnalyze = async () => {
     if (!canAnalyze) return
+
     setIsLoading(true)
     setInvestigationStep(0)
     onError("")
+
     const progressTimer = window.setInterval(() => {
       setInvestigationStep((prev) => Math.min(prev + 1, INVESTIGATION_STEPS.length - 1))
     }, 1200)
@@ -99,6 +125,7 @@ export function MultiUploadZone({ onResult, onError }: MultiUploadZoneProps) {
       const formData = new FormData()
       formData.append("bill", files.bill!)
       formData.append("eob", files.eob!)
+
       if (files.denialLetter) {
         formData.append("denialLetter", files.denialLetter)
       }
@@ -123,66 +150,89 @@ export function MultiUploadZone({ onResult, onError }: MultiUploadZoneProps) {
     }
   }
 
-  return (
-    <div className="space-y-5">
-      {isLoading ? (
-        <div className="rounded-lg border border-[var(--border)] bg-slate-50 p-5">
-          <div className="flex items-center gap-2">
-            <SpinnerIcon />
-            <p className="text-sm font-semibold text-slate-900">Investigating billing documents</p>
+  if (isLoading) {
+    return (
+      <div className="space-y-5">
+        <div className="sage-panel p-6 md:p-7">
+          <div className="flex items-start gap-4">
+            <div className="flex h-12 w-12 items-center justify-center rounded-full bg-[color-mix(in_srgb,var(--color-sage-300)_62%,var(--color-white)_38%)] text-[var(--color-teal-700)]">
+              <FileStack className="h-5 w-5" />
+            </div>
+            <div>
+              <div className="eyebrow">Review in progress</div>
+              <h3 className="section-title mt-3 text-[1.55rem]">We are turning your documents into a claim review.</h3>
+              <p className="body-copy mt-3">
+                This usually takes under a minute. You will review the findings before any draft or next step is used.
+              </p>
+            </div>
           </div>
-          <p className="mt-2 text-sm text-slate-600">
-            Running the audit workflow now. This usually takes 30-60 seconds.
-          </p>
-          <div className="mt-4 space-y-2">
-            {INVESTIGATION_STEPS.map((step, idx) => {
-              const isDone = idx < investigationStep
-              const isCurrent = idx === investigationStep
+
+          <div className="mt-6 space-y-3">
+            {INVESTIGATION_STEPS.map((step, index) => {
+              const complete = index < investigationStep
+              const current = index === investigationStep
+
               return (
                 <div
                   key={step}
-                  className={`flex items-center gap-2 rounded-md border px-3 py-2 text-sm ${
-                    isCurrent
-                      ? "border-blue-200 bg-blue-50 text-blue-900"
-                      : isDone
-                        ? "border-slate-200 bg-white text-slate-700"
-                        : "border-slate-200 bg-white text-slate-500"
-                  }`}
+                  className={cn(
+                    "rounded-[1.2rem] border px-4 py-3 transition-colors",
+                    current
+                      ? "border-[color-mix(in_srgb,var(--color-teal-500)_22%,var(--color-stone-200)_78%)] bg-[color-mix(in_srgb,var(--color-white)_55%,var(--color-sage-100)_45%)]"
+                      : "border-[var(--color-stone-200)] bg-[color-mix(in_srgb,var(--color-white)_76%,var(--color-stone-100)_24%)]"
+                  )}
                 >
-                  <span
-                    className={`inline-flex h-5 w-5 items-center justify-center rounded-full text-xs ${
-                      isCurrent ? "bg-blue-600 text-white" : isDone ? "bg-slate-700 text-white" : "bg-slate-200 text-slate-700"
-                    }`}
-                  >
-                    {isDone ? "✓" : idx + 1}
-                  </span>
-                  <span>{step}</span>
+                  <div className="flex items-center gap-3">
+                    <span
+                      className={cn(
+                        "flex h-7 w-7 items-center justify-center rounded-full text-xs font-semibold",
+                        complete || current
+                          ? "bg-[var(--color-teal-500)] text-white"
+                          : "bg-[var(--color-stone-200)] text-[var(--color-ink-700)]"
+                      )}
+                    >
+                      {complete ? "✓" : index + 1}
+                    </span>
+                    <div>
+                      <p className="text-sm font-semibold text-[var(--color-ink-900)]">{step}</p>
+                      <p className="text-sm text-[var(--color-ink-700)]">
+                        {current ? "Current step" : complete ? "Completed" : "Queued"}
+                      </p>
+                    </div>
+                  </div>
                 </div>
               )
             })}
           </div>
         </div>
-      ) : null}
+      </div>
+    )
+  }
 
-      {!isLoading ? (
-        <>
+  return (
+    <div className="space-y-6">
+      <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_18rem]">
+        <div className="space-y-4">
           {FILE_SLOTS.map((slot) => {
             const file = files[slot.key]
             const isDragging = dragging === slot.key
 
             return (
-              <div key={slot.key} className="rounded-lg border border-[var(--border)] bg-slate-50/60 p-3">
-                <div className="mb-2 flex items-center gap-2">
-                  <p className="text-sm font-semibold text-slate-900">{slot.label}</p>
-                  {slot.required ? (
-                    <span className="rounded-full border border-blue-200 bg-blue-50 px-2 py-0.5 text-[11px] font-medium text-blue-700">
-                      Required
-                    </span>
-                  ) : (
-                    <span className="rounded-full border border-slate-200 bg-white px-2 py-0.5 text-[11px] text-slate-500">
-                      Optional
-                    </span>
-                  )}
+              <div
+                key={slot.key}
+                className="rounded-[1.8rem] border border-[var(--color-stone-200)] bg-[color-mix(in_srgb,var(--color-white)_74%,var(--color-stone-100)_26%)] p-4 shadow-[var(--shadow-soft)]"
+              >
+                <div className="flex flex-wrap items-start justify-between gap-3">
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <h3 className="text-lg font-semibold text-[var(--color-ink-900)]">{slot.label}</h3>
+                      <span className={cn("status-chip", slot.required ? "teal" : "stone")}>
+                        {slot.required ? "Required" : "Optional"}
+                      </span>
+                    </div>
+                    <p className="mt-2 text-sm text-[var(--color-ink-700)]">{slot.description}</p>
+                    <p className="mt-1 text-sm text-[var(--color-ink-500)]">{slot.detail}</p>
+                  </div>
                 </div>
 
                 <div
@@ -202,16 +252,18 @@ export function MultiUploadZone({ onResult, onError }: MultiUploadZoneProps) {
                   }}
                   onDragLeave={() => setDragging(null)}
                   className={cn(
-                    "relative flex cursor-pointer items-center gap-4 rounded-lg border border-dashed px-4 py-4 transition-colors",
+                    "mt-4 rounded-[1.5rem] border border-dashed px-5 py-6 transition-colors",
                     isDragging
-                      ? "border-blue-500 bg-blue-50"
+                      ? "border-[var(--color-teal-500)] bg-[color-mix(in_srgb,var(--color-sage-100)_65%,var(--color-white)_35%)]"
                       : file
-                        ? "border-blue-300 bg-white"
-                        : "border-[var(--border)] bg-white hover:border-blue-300 hover:bg-slate-50"
+                        ? "border-[color-mix(in_srgb,var(--color-teal-500)_28%,var(--color-stone-200)_72%)] bg-[color-mix(in_srgb,var(--color-white)_58%,var(--color-sage-100)_42%)]"
+                        : "border-[var(--color-stone-200)] bg-[color-mix(in_srgb,var(--color-white)_68%,var(--color-stone-50)_32%)] hover:border-[var(--color-teal-500)] hover:bg-[color-mix(in_srgb,var(--color-sage-100)_38%,var(--color-white)_62%)]"
                   )}
                 >
                   <input
-                    ref={(el) => { inputRefs.current[slot.key] = el }}
+                    ref={(el) => {
+                      inputRefs.current[slot.key] = el
+                    }}
                     type="file"
                     accept=".pdf,image/jpeg,image/jpg,image/png,image/webp"
                     className="hidden"
@@ -221,100 +273,92 @@ export function MultiUploadZone({ onResult, onError }: MultiUploadZoneProps) {
                     }}
                   />
 
-                  <div
-                    className={cn(
-                      "flex h-10 w-10 shrink-0 items-center justify-center rounded-md",
-                      file ? "bg-blue-100" : "bg-slate-100"
-                    )}
-                  >
-                    {file ? <CheckCircleIcon /> : <UploadSmallIcon />}
-                  </div>
+                  <div className="flex flex-col gap-4 md:flex-row md:items-center">
+                    <div className="flex h-12 w-12 items-center justify-center rounded-full bg-[color-mix(in_srgb,var(--color-white)_46%,var(--color-stone-100)_54%)] text-[var(--color-teal-700)]">
+                      {file ? <FileText className="h-5 w-5" /> : <UploadCloud className="h-5 w-5" />}
+                    </div>
 
-                  <div className="min-w-0 flex-1">
+                    <div className="min-w-0 flex-1">
+                      {file ? (
+                        <>
+                          <p className="truncate text-sm font-semibold text-[var(--color-ink-900)]">{file.name}</p>
+                          <p className="mt-1 text-sm text-[var(--color-ink-700)]">
+                            {(file.size / 1024).toFixed(0)} KB · ready to review
+                          </p>
+                        </>
+                      ) : (
+                        <>
+                          <p className="text-sm font-semibold text-[var(--color-ink-900)]">Drop a file here or click to browse.</p>
+                          <p className="mt-1 text-sm text-[var(--color-ink-700)]">
+                            Accepted file types: {ACCEPTED_DISPLAY}. Maximum file size: 20MB.
+                          </p>
+                        </>
+                      )}
+                    </div>
+
                     {file ? (
-                      <>
-                        <p className="truncate text-sm font-medium text-slate-900">{file.name}</p>
-                        <p className="text-xs text-slate-600">
-                          {(file.size / 1024).toFixed(0)} KB
-                        </p>
-                      </>
-                    ) : (
-                      <>
-                        <p className="text-sm text-slate-700">{slot.description}</p>
-                        <p className="text-xs text-slate-500">
-                          Drop file or click to browse - {ACCEPTED_DISPLAY}
-                        </p>
-                      </>
-                    )}
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          clearFile(slot.key)
+                        }}
+                        className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-[var(--color-stone-200)] bg-[color-mix(in_srgb,var(--color-white)_68%,var(--color-stone-100)_32%)] text-[var(--color-ink-700)] transition-colors hover:bg-[var(--color-stone-100)]"
+                        aria-label={`Remove ${slot.label}`}
+                      >
+                        <X className="h-4 w-4" />
+                      </button>
+                    ) : null}
                   </div>
-
-                  {file && (
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation()
-                        clearFile(slot.key)
-                      }}
-                      className="shrink-0 rounded-md p-1.5 text-slate-400 transition-colors hover:bg-slate-100 hover:text-slate-700"
-                      aria-label={`Remove ${slot.label}`}
-                    >
-                      <XIcon />
-                    </button>
-                  )}
                 </div>
               </div>
             )
           })}
-        </>
-      ) : null}
+        </div>
 
-      <Button
-        onClick={handleAnalyze}
-        disabled={!canAnalyze}
-        className="w-full"
-        size="lg"
-      >
-        {isLoading ? (
-          <span className="flex items-center gap-2">
-            <SpinnerIcon />
-            Analyzing documents... this may take 30-60 seconds
-          </span>
-        ) : (
-          "Run Analysis"
-        )}
-      </Button>
+        <aside className="sage-panel flex flex-col justify-between p-5 md:p-6">
+          <div>
+            <div className="eyebrow">What happens next</div>
+            <h3 className="section-title mt-3 text-[1.45rem]">We turn the documents into a guided case review.</h3>
+            <ul className="mt-4 space-y-3">
+              {[
+                "We normalize the bill and EOB into one claim view.",
+                "We flag likely issues such as duplicate charges and mismatched responsibility.",
+                "You review findings before any dispute draft is used.",
+              ].map((item) => (
+                <li key={item} className="flex gap-3 text-sm leading-6 text-[var(--color-ink-700)]">
+                  <span className="mt-2 h-1.5 w-1.5 rounded-full bg-[var(--color-teal-500)]" />
+                  <span>{item}</span>
+                </li>
+              ))}
+            </ul>
+          </div>
+
+          <div className="mt-6 rounded-[1.35rem] border border-[var(--color-stone-200)] bg-[color-mix(in_srgb,var(--color-white)_62%,var(--color-stone-100)_38%)] p-4">
+            <div className="flex items-center gap-2 text-sm font-semibold text-[var(--color-ink-900)]">
+              <ShieldCheck className="h-4 w-4 text-[var(--color-teal-700)]" />
+              Privacy note
+            </div>
+            <p className="mt-2 text-sm leading-6 text-[var(--color-ink-700)]">
+              Files are only used to prepare your claim review and recommended next steps in this workspace.
+            </p>
+          </div>
+        </aside>
+      </div>
+
+      <div className="flex flex-col gap-4 rounded-[1.75rem] border border-[var(--color-stone-200)] bg-[color-mix(in_srgb,var(--color-white)_74%,var(--color-stone-100)_26%)] p-5 shadow-[var(--shadow-soft)] md:flex-row md:items-center md:justify-between">
+        <div>
+          <p className="text-sm font-semibold text-[var(--color-ink-900)]">
+            {canAnalyze ? "Ready to begin review." : "Add the bill and EOB to begin review."}
+          </p>
+          <p className="mt-1 text-sm text-[var(--color-ink-700)]">
+            The first result you should expect is clarity: what is wrong, why it matters, and what comes next.
+          </p>
+        </div>
+        <Button size="lg" onClick={handleAnalyze} disabled={!canAnalyze}>
+          Begin review
+        </Button>
+      </div>
     </div>
-  )
-}
-
-function UploadSmallIcon() {
-  return (
-    <svg className="h-5 w-5 text-slate-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
-    </svg>
-  )
-}
-
-function CheckCircleIcon() {
-  return (
-    <svg className="h-5 w-5 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-    </svg>
-  )
-}
-
-function XIcon() {
-  return (
-    <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-    </svg>
-  )
-}
-
-function SpinnerIcon() {
-  return (
-    <svg className="h-4 w-4 animate-spin" fill="none" viewBox="0 0 24 24">
-      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
-    </svg>
   )
 }

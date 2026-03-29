@@ -3,26 +3,24 @@
 import Link from "next/link"
 import { useAuth0 } from "@auth0/auth0-react"
 import { useMemo, useState, useEffect } from "react"
-import { useRouter } from "next/navigation"
+import { ArrowRight, Clock3, FileText, ShieldCheck } from "lucide-react"
 import type { ActionCategory, AnalysisResult } from "@/types/analysis"
+import { Button } from "@/components/ui/button"
+import { ClaimWorkspacePreview } from "@/components/ClaimWorkspacePreview"
 import { supabase } from "@/lib/supabase"
+
 const RECENT_ANALYSES_STORAGE_KEY = "redline.recent-analyses.v1"
 const MAX_RECENT_ANALYSES = 5
 
 const CATEGORY_LABELS: Record<ActionCategory, string> = {
-  contact_provider: "Contact Provider Billing",
-  file_appeal: "File Insurance Appeal",
-  legal_protection: "Use Legal Protection",
-  dispute_self_pay: "Dispute Self-Pay Balance",
-}
-
-function profileValue(value?: string | null) {
-  if (!value) return "Not provided"
-  return value
+  contact_provider: "Contact provider billing",
+  file_appeal: "File insurance appeal",
+  legal_protection: "Use legal protection",
+  dispute_self_pay: "Dispute self-pay balance",
 }
 
 function formatCurrency(value: number | null): string {
-  if (value === null) return "-"
+  if (value === null) return "Not available"
   return new Intl.NumberFormat("en-US", {
     style: "currency",
     currency: "USD",
@@ -86,31 +84,24 @@ function getInitialRecentAnalyses(): AnalysisResult[] {
 }
 
 export default function DashboardPage() {
-  const { user, isLoading, loginWithRedirect, logout } = useAuth0()
-  const router = useRouter()
+  const { user, isLoading, loginWithRedirect } = useAuth0()
   const [recentAnalyses, setRecentAnalyses] = useState<AnalysisResult[]>(() => getInitialRecentAnalyses())
   const [selectedCaseId, setSelectedCaseId] = useState<string | null>(null)
   const [fetching, setFetching] = useState(false)
 
-  // Fetch from Supabase on load
   useEffect(() => {
     async function fetchHistory() {
       if (!user?.sub) return
 
       setFetching(true)
       try {
-        const { data, error } = await supabase
-          .from('user_cases')
-          .select('cases')
-          .eq('user_id', user.sub)
-          .maybeSingle()
+        const { data } = await supabase.from("user_cases").select("cases").eq("user_id", user.sub).maybeSingle()
 
         if (data?.cases) {
           const remoteCases = data.cases as AnalysisResult[]
           setRecentAnalyses(remoteCases)
-          // Set initial selection if not set
-          if (!selectedCaseId && remoteCases.length > 0) {
-            setSelectedCaseId(remoteCases[0].caseId)
+          if (remoteCases.length > 0) {
+            setSelectedCaseId((current) => current ?? remoteCases[0].caseId)
           }
         }
       } catch (err) {
@@ -123,7 +114,7 @@ export default function DashboardPage() {
     if (user) {
       fetchHistory()
     }
-  }, [user, user?.sub])
+  }, [user])
 
   const recentItems = useMemo(() => recentAnalyses.slice(0, MAX_RECENT_ANALYSES), [recentAnalyses])
 
@@ -145,47 +136,14 @@ export default function DashboardPage() {
     [recentItems]
   )
 
-  const openActions = useMemo(
-    () => recentItems.filter((item) => item.detectedIssues.length > 0).length,
-    [recentItems]
-  )
-
   const latestAnalysis = recentItems[0] ?? null
-
-  const originalCharges = selectedAnalysis?.extractedFields.billedAmount ?? null
-  const savingsValue = selectedAnalysis ? getPotentialSavings(selectedAnalysis) : null
-  const correctedCharges =
-    typeof originalCharges === "number" && typeof savingsValue === "number"
-      ? Math.max(originalCharges - savingsValue, 0)
-      : selectedAnalysis?.extractedFields.insurerPaid ?? null
-
-  const chartValues = [originalCharges ?? 0, correctedCharges ?? 0, savingsValue ?? 0]
-  const chartMax = Math.max(...chartValues, 1)
-
-  const bars = [
-    {
-      label: "Original Charges",
-      value: originalCharges,
-      className: "bg-slate-300",
-    },
-    {
-      label: "Corrected Charges",
-      value: correctedCharges,
-      className: "bg-blue-500",
-    },
-    {
-      label: "Savings",
-      value: savingsValue,
-      className: "bg-blue-700",
-    },
-  ]
 
   if (isLoading) {
     return (
-      <section className="mx-auto w-full max-w-6xl px-4 py-10 sm:px-6 lg:px-8">
-        <div className="rounded-xl border border-[var(--border)] bg-white p-8">
-          <h1 className="text-2xl font-semibold tracking-tight text-slate-900">Dashboard</h1>
-          <p className="mt-3 text-sm text-slate-600">Loading profile...</p>
+      <section className="section-shell">
+        <div className="paper-panel p-8">
+          <p className="eyebrow">Cases</p>
+          <h1 className="section-title mt-4">Loading your workspace.</h1>
         </div>
       </section>
     )
@@ -193,224 +151,228 @@ export default function DashboardPage() {
 
   if (!user) {
     return (
-      <section className="mx-auto w-full max-w-6xl px-4 py-10 sm:px-6 lg:px-8">
-        <div className="rounded-xl border border-[var(--border)] bg-white p-8">
-          <h1 className="text-2xl font-semibold tracking-tight text-slate-900">Dashboard</h1>
-          <p className="mt-3 text-sm text-slate-600">
-            You are not signed in. Use Auth0 login to view your profile dashboard.
+      <section className="section-shell">
+        <div className="copy-column">
+          <p className="eyebrow">Cases</p>
+          <h1 className="display-md mt-4 text-balance">Sign in to review saved claims and start a new one.</h1>
+          <p className="body-copy mt-5">
+            Your case history lives here, including recent reviews, issue summaries, and the next recommended action.
           </p>
-          <button
-            onClick={() => loginWithRedirect()}
-            className="mt-6 inline-flex rounded-md bg-slate-900 px-4 py-2 text-sm font-medium text-white hover:bg-slate-800"
-          >
-            Login with Auth0
-          </button>
+          <div className="mt-8 flex flex-wrap gap-3">
+            <Button size="lg" onClick={() => loginWithRedirect()}>
+              Sign in to continue
+            </Button>
+            <Button asChild variant="outline" size="lg">
+              <Link href="/">Return home</Link>
+            </Button>
+          </div>
         </div>
       </section>
     )
   }
 
   return (
-    <section className="mx-auto w-full max-w-6xl px-4 py-10 sm:px-6 lg:px-8">
-      <div className="space-y-10">
-        <header className="flex flex-wrap items-start justify-between gap-4">
-          <div>
-            <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Dashboard</p>
-            <h1 className="mt-1 text-2xl font-semibold tracking-tight text-slate-900">Billing Audit Workspace</h1>
-            <p className="mt-2 text-sm text-slate-600">
-              Monitor value delivered and move cleanly into a new analysis when needed.
+    <div>
+      <section className="section-shell pb-10 pt-10 md:pb-12 md:pt-14">
+        <div className="flex flex-wrap items-end justify-between gap-6">
+          <div className="copy-column">
+            <p className="eyebrow">Cases</p>
+            <h1 className="display-md mt-4 text-balance">A calmer record of what was found and what comes next.</h1>
+            <p className="body-copy mt-5">
+              Keep recent claim reviews in one place, revisit the evidence, and move back into drafting when you are ready.
             </p>
           </div>
-          <div className="flex items-center gap-3 rounded-lg border border-[var(--border)] bg-white px-3 py-2">
-            {user.picture ? (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img
-                src={user.picture}
-                alt={user.name ?? user.email ?? "User"}
-                className="h-9 w-9 rounded-full border border-[var(--border)] object-cover"
-              />
-            ) : (
-              <div className="h-9 w-9 rounded-full border border-[var(--border)] bg-slate-100" />
-            )}
-            <div>
-              <p className="text-sm font-medium tracking-tight text-slate-900">{profileValue(user.name)}</p>
-              <p className="text-xs text-slate-600">{profileValue(user.email)}</p>
+
+          <div className="flex flex-wrap items-center gap-3">
+            <div className="status-chip teal">
+              <ShieldCheck className="h-3.5 w-3.5" />
+              {fetching ? "Refreshing cases" : `${recentItems.length} recent case${recentItems.length === 1 ? "" : "s"}`}
             </div>
-            <button
-              onClick={() => logout({ logoutParams: { returnTo: window.location.origin } })}
-              className="ml-2 inline-flex rounded-md border border-[var(--border)] bg-white px-3 py-1.5 text-sm font-medium text-slate-700 hover:bg-slate-50"
-            >
-              Logout
-            </button>
+            <Button asChild size="lg">
+              <Link href="/analysis/new">Start a new claim</Link>
+            </Button>
           </div>
-        </header>
+        </div>
+      </section>
 
-        <section className="rounded-xl border border-[var(--border)] bg-white p-6">
-          <div className="mb-5">
-            <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Section 1</p>
-            <h2 className="mt-1 text-lg font-semibold text-slate-900">Summary Metrics</h2>
-          </div>
-          <div className="grid gap-4 lg:grid-cols-[1.5fr_1fr_1fr_1fr]">
-            <MetricCard
-              title="Total Savings Identified"
-              value={formatCurrency(totalSavings)}
-              subtitle={recentItems.length > 0 ? "Across recent analyses" : "Run an analysis to populate this"}
-              emphasis
-            />
-            <MetricCard
-              title="Issues Found"
-              value={String(totalIssues)}
-              subtitle={recentItems.length > 0 ? "Across recent analyses" : "No issues detected yet"}
-            />
-            <MetricCard
-              title="Cases Reviewed"
-              value={String(recentItems.length)}
-              subtitle="Stored in your local workspace history"
-            />
-            <MetricCard
-              title="Open Actions"
-              value={String(openActions)}
-              subtitle={latestAnalysis ? `Last analysis: ${formatDateTime(latestAnalysis.analyzedAt)}` : "No recent analyses"}
-            />
-          </div>
-        </section>
-
-        <section className="rounded-xl border border-[var(--border)] bg-white p-6">
-          <div className="flex flex-wrap items-end justify-between gap-4">
-            <div>
-              <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Section 2</p>
-              <h2 className="mt-1 text-lg font-semibold text-slate-900">Start New Analysis</h2>
-              <p className="mt-2 max-w-2xl text-sm text-slate-600">
-                Start a focused document review workflow for a medical bill and EOB, then receive issue findings and next-step actions.
+      <section className="section-shell pt-0">
+        {recentItems.length === 0 ? (
+          <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_26rem] xl:items-center">
+            <div className="paper-panel p-8 md:p-10">
+              <p className="eyebrow">Your first case</p>
+              <h2 className="display-md mt-4 text-balance">Nothing saved yet. Start with the bill and EOB.</h2>
+              <p className="body-copy mt-5">
+                Most people using this product are new to claims and appeals. The first value is understanding the charge and seeing a trustworthy next step, not learning a complex dashboard.
               </p>
+              <div className="mt-8 flex flex-wrap gap-3">
+                <Button asChild size="lg">
+                  <Link href="/analysis/new">Upload documents</Link>
+                </Button>
+                <Button asChild variant="outline" size="lg">
+                  <Link href="/#process">See how it works</Link>
+                </Button>
+              </div>
             </div>
-            <Link
-              href="/analysis/new"
-              className="inline-flex rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700"
-            >
-              Start New Analysis
-            </Link>
-          </div>
-        </section>
 
-        <section className="rounded-xl border border-[var(--border)] bg-white p-6">
-          <div className="mb-5">
-            <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Section 3</p>
-            <h2 className="mt-1 text-lg font-semibold text-slate-900">Savings Visualization</h2>
-            <p className="mt-2 text-sm text-slate-600">
-              Value view for the currently selected recent case.
-            </p>
+            <ClaimWorkspacePreview compact />
           </div>
+        ) : (
+          <div className="grid gap-6 xl:grid-cols-[22rem_minmax(0,1fr)]">
+            <aside className="space-y-4">
+              <div className="paper-panel p-5">
+                <div className="eyebrow">Overview</div>
+                <div className="mt-4 space-y-4">
+                  <Metric label="Potential savings reviewed" value={formatCurrency(totalSavings)} />
+                  <Metric label="Issues surfaced" value={`${totalIssues}`} />
+                  <Metric label="Latest review" value={formatDateTime(latestAnalysis?.analyzedAt)} />
+                </div>
+              </div>
 
-          {selectedAnalysis ? (
-            <div className="space-y-4">
-              {bars.map((bar) => {
-                const value = bar.value ?? 0
-                const widthPct = Math.max(6, (value / chartMax) * 100)
-                return (
-                  <div key={bar.label} className="space-y-1.5">
-                    <div className="flex items-center justify-between gap-3">
-                      <p className="text-sm font-medium text-slate-800">{bar.label}</p>
-                      <p className="text-sm font-semibold text-slate-900">{formatCurrency(bar.value)}</p>
+              <div className="paper-panel overflow-hidden">
+                <div className="border-b border-[var(--color-stone-200)] px-5 py-4">
+                  <div className="eyebrow">Recent cases</div>
+                </div>
+                <div className="divide-y divide-[var(--color-stone-200)]">
+                  {recentItems.map((item) => {
+                    const active = (selectedCaseId ?? recentItems[0]?.caseId) === item.caseId
+
+                    return (
+                      <button
+                        key={item.caseId}
+                        type="button"
+                        onClick={() => setSelectedCaseId(item.caseId)}
+                        className={active
+                          ? "w-full bg-[color-mix(in_srgb,var(--color-sage-100)_56%,var(--color-white)_44%)] px-5 py-4 text-left"
+                          : "w-full px-5 py-4 text-left transition-colors hover:bg-[color-mix(in_srgb,var(--color-stone-100)_62%,var(--color-white)_38%)]"}
+                      >
+                        <div className="flex items-start justify-between gap-4">
+                          <div>
+                            <p className="text-sm font-semibold text-[var(--color-ink-900)]">
+                              {item.extractedFields.provider || "Untitled provider review"}
+                            </p>
+                            <p className="mt-1 text-sm text-[var(--color-ink-700)]">{formatDateTime(item.analyzedAt)}</p>
+                          </div>
+                          <span className={item.detectedIssues.length > 0 ? "status-chip coral" : "status-chip stone"}>
+                            {item.detectedIssues.length > 0 ? `${item.detectedIssues.length} issues` : "Clear"}
+                          </span>
+                        </div>
+                      </button>
+                    )
+                  })}
+                </div>
+              </div>
+            </aside>
+
+            {selectedAnalysis ? (
+              <div className="space-y-6">
+                <div className="paper-panel p-6 md:p-8">
+                  <div className="flex flex-wrap items-start justify-between gap-4">
+                    <div className="max-w-[40rem]">
+                      <div className="eyebrow">Selected case</div>
+                      <h2 className="display-md mt-4 text-balance">
+                        {selectedAnalysis.extractedFields.provider || "Claim review ready"}
+                      </h2>
+                      <p className="body-copy mt-5">
+                        {selectedAnalysis.explanation || "Review the findings, compare the charges, and continue into the claim workspace."}
+                      </p>
                     </div>
-                    <div className="h-3 rounded-full bg-slate-100">
-                      <div className={`h-3 rounded-full ${bar.className}`} style={{ width: `${widthPct}%` }} />
+                    <Button asChild size="lg">
+                      <Link href={`/analysis/${selectedAnalysis.caseId}`}>Open full review</Link>
+                    </Button>
+                  </div>
+
+                  <div className="mt-8 grid gap-4 md:grid-cols-3">
+                    <Highlight label="Potential savings" value={formatCurrency(getPotentialSavings(selectedAnalysis))} />
+                    <Highlight label="Recommended path" value={getRecommendedAction(selectedAnalysis)} />
+                    <Highlight label="Service date" value={selectedAnalysis.extractedFields.serviceDate || "Not available"} />
+                  </div>
+                </div>
+
+                <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_19rem]">
+                  <div className="paper-panel p-6 md:p-8">
+                    <div className="eyebrow">Issues found</div>
+                    <div className="mt-4 space-y-4">
+                      {selectedAnalysis.detectedIssues.length > 0 ? (
+                        selectedAnalysis.detectedIssues.map((issue) => (
+                          <div
+                            key={`${issue.type}-${issue.description}`}
+                            className="rounded-[1.35rem] border border-[var(--color-stone-200)] bg-[color-mix(in_srgb,var(--color-white)_76%,var(--color-stone-100)_24%)] p-4"
+                          >
+                            <div className="flex flex-wrap items-center justify-between gap-3">
+                              <p className="text-sm font-semibold text-[var(--color-ink-900)]">{issue.description}</p>
+                              <span className={issue.severity === "error" ? "status-chip coral" : "status-chip stone"}>
+                                {issue.severity === "error" ? "Needs attention" : "Review"}
+                              </span>
+                            </div>
+                            <p className="mt-2 text-sm text-[var(--color-ink-700)]">{issue.type.replaceAll("_", " ").toLowerCase()}</p>
+                          </div>
+                        ))
+                      ) : (
+                        <div className="rounded-[1.35rem] border border-[var(--color-stone-200)] bg-[color-mix(in_srgb,var(--color-white)_76%,var(--color-stone-100)_24%)] p-4 text-sm text-[var(--color-ink-700)]">
+                          No issues were detected in this review.
+                        </div>
+                      )}
                     </div>
                   </div>
-                )
-              })}
-              <p className="text-xs text-slate-500">
-                Based on billed amount, insurer-paid amount, and estimated patient responsibility.
-              </p>
-            </div>
-          ) : (
-            <div className="rounded-lg border border-dashed border-slate-300 bg-slate-50 px-4 py-8 text-center">
-              <p className="text-sm text-slate-700">Run your first analysis to view charge comparison and savings.</p>
-            </div>
-          )}
-        </section>
 
-        <section className="rounded-xl border border-[var(--border)] bg-white p-6">
-          <div className="mb-5 flex flex-wrap items-end justify-between gap-3">
-            <div>
-              <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Section 4</p>
-              <h2 className="mt-1 text-lg font-semibold text-slate-900">Recent Analyses</h2>
-              <p className="mt-2 text-sm text-slate-600">
-                Recent case snapshots from your current workspace history.
-              </p>
-            </div>
-            <Link
-              href="/analysis/new"
-              className="inline-flex rounded-md border border-[var(--border)] bg-white px-3 py-1.5 text-sm font-medium text-slate-700 hover:bg-slate-50"
-            >
-              Open Analysis Workspace
-            </Link>
+                  <div className="sage-panel p-6">
+                    <div className="eyebrow">Next action</div>
+                    <h3 className="section-title mt-3 text-[1.45rem]">{getRecommendedAction(selectedAnalysis)}</h3>
+                    <p className="mt-3 text-sm leading-6 text-[var(--color-ink-700)]">
+                      Reopen the full review when you want to inspect evidence, draft communications, or revisit the claim timeline.
+                    </p>
+                    <div className="mt-6 space-y-4">
+                      <InfoLine icon={Clock3} text={formatDateTime(selectedAnalysis.analyzedAt)} />
+                      <InfoLine icon={FileText} text={`${selectedAnalysis.detectedIssues.length} issue${selectedAnalysis.detectedIssues.length === 1 ? "" : "s"} surfaced`} />
+                    </div>
+                    <Button asChild variant="outline" size="lg" className="mt-6 w-full">
+                      <Link href={`/analysis/${selectedAnalysis.caseId}`}>
+                        Continue this case
+                        <ArrowRight className="h-4 w-4" />
+                      </Link>
+                    </Button>
+                  </div>
+                </div>
+              </div>
+            ) : null}
           </div>
-
-          {recentItems.length > 0 ? (
-            <div className="space-y-3">
-              {recentItems.map((item) => {
-                const isSelected = selectedAnalysis?.caseId === item.caseId
-                const issueCount = item.detectedIssues.length
-                const status = issueCount > 0 ? "Action recommended" : "No issues"
-                const provider = item.extractedFields.provider ?? "Unknown provider"
-                const billed = item.extractedFields.billedAmount
-                const savings = getPotentialSavings(item)
-                return (
-                  <button
-                    key={item.caseId}
-                    type="button"
-                    onClick={() => router.push(`/analysis/${item.caseId}`)}
-                    onMouseEnter={() => setSelectedCaseId(item.caseId)}
-                    className={`w-full rounded-lg border p-4 text-left transition-colors ${isSelected ? "border-blue-300 bg-blue-50/40" : "border-[var(--border)] bg-white hover:bg-slate-50"
-                      }`}
-                  >
-                    <div className="flex flex-wrap items-start justify-between gap-3">
-                      <div className="space-y-1">
-                        <p className="text-sm font-semibold text-slate-900">{provider}</p>
-                        <p className="text-xs text-slate-600">{formatDateTime(item.analyzedAt)}</p>
-                      </div>
-                      <span className="rounded-full border border-slate-200 bg-slate-50 px-2.5 py-1 text-xs font-medium text-slate-700">
-                        {status}
-                      </span>
-                    </div>
-                    <div className="mt-3 grid gap-2 text-sm text-slate-700 sm:grid-cols-2 lg:grid-cols-4">
-                      <p><span className="font-medium text-slate-900">Billed:</span> {formatCurrency(billed)}</p>
-                      <p><span className="font-medium text-slate-900">Savings:</span> {formatCurrency(savings)}</p>
-                      <p><span className="font-medium text-slate-900">Issues:</span> {issueCount}</p>
-                      <p><span className="font-medium text-slate-900">Next step:</span> {getRecommendedAction(item)}</p>
-                    </div>
-                  </button>
-                )
-              })}
-            </div>
-          ) : (
-            <div className="rounded-lg border border-dashed border-slate-300 bg-slate-50 px-4 py-8 text-center">
-              <p className="text-sm text-slate-700">No prior analyses yet. Your recent cases will appear here.</p>
-            </div>
-          )}
-        </section>
-      </div>
-    </section>
+        )}
+      </section>
+    </div>
   )
 }
 
-function MetricCard({
-  title,
-  value,
-  subtitle,
-  emphasis = false,
+function Metric({ label, value }: { label: string; value: string }) {
+  return (
+    <div>
+      <p className="text-[0.75rem] uppercase tracking-[0.16em] text-[var(--color-ink-500)]">{label}</p>
+      <p className="mt-2 font-[family:var(--font-display)] text-[1.8rem] leading-none text-[var(--color-ink-900)]">{value}</p>
+    </div>
+  )
+}
+
+function Highlight({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="rounded-[1.35rem] border border-[var(--color-stone-200)] bg-[color-mix(in_srgb,var(--color-white)_76%,var(--color-stone-100)_24%)] p-4">
+      <p className="text-[0.75rem] uppercase tracking-[0.16em] text-[var(--color-ink-500)]">{label}</p>
+      <p className="mt-3 text-base font-semibold text-[var(--color-ink-900)]">{value}</p>
+    </div>
+  )
+}
+
+function InfoLine({
+  icon: Icon,
+  text,
 }: {
-  title: string
-  value: string
-  subtitle: string
-  emphasis?: boolean
+  icon: typeof Clock3
+  text: string
 }) {
   return (
-    <div className={`rounded-lg border border-[var(--border)] bg-white p-4 ${emphasis ? "lg:p-5" : ""}`}>
-      <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">{title}</p>
-      <p className={`mt-2 font-semibold tracking-tight text-slate-900 ${emphasis ? "text-4xl" : "text-2xl"}`}>{value}</p>
-      <p className="mt-2 text-xs text-slate-600">{subtitle}</p>
+    <div className="flex items-center gap-3 text-sm text-[var(--color-ink-700)]">
+      <div className="flex h-9 w-9 items-center justify-center rounded-full bg-[color-mix(in_srgb,var(--color-white)_44%,var(--color-sage-100)_56%)] text-[var(--color-teal-700)]">
+        <Icon className="h-4 w-4" />
+      </div>
+      <span>{text}</span>
     </div>
   )
 }

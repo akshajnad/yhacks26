@@ -3,8 +3,11 @@
 import Link from "next/link"
 import { useAuth0 } from "@auth0/auth0-react"
 import { useCallback, useState } from "react"
+import { ArrowLeft, ArrowRight, ShieldCheck } from "lucide-react"
 import { MultiUploadZone } from "@/components/MultiUploadZone"
 import { AnalysisResultDisplay } from "@/components/AnalysisResult"
+import { ClaimWorkspacePreview } from "@/components/ClaimWorkspacePreview"
+import { Button } from "@/components/ui/button"
 import type { AnalysisResult } from "@/types/analysis"
 import { supabase } from "@/lib/supabase"
 
@@ -42,47 +45,43 @@ function writeRecentAnalyses(items: AnalysisResult[]) {
 }
 
 async function persistRecentAnalysis(result: AnalysisResult, userId?: string) {
-  // 1. Maintain local cache for immediate feedback
   const prevLocal = readRecentAnalyses()
   const dedupedLocal = prevLocal.filter((item) => item.caseId !== result.caseId)
   writeRecentAnalyses([result, ...dedupedLocal])
 
-  // 2. Persist to Supabase if userId is available
-  if (userId) {
-    try {
-      // Fetch existing cases
-      const { data, error: fetchError } = await supabase
-        .from('user_cases')
-        .select('cases')
-        .eq('user_id', userId)
-        .maybeSingle()
+  if (!userId) return
 
-      if (fetchError) {
-        console.error("Supabase fetch error:", fetchError)
-        return
-      }
+  try {
+    const { data, error: fetchError } = await supabase
+      .from("user_cases")
+      .select("cases")
+      .eq("user_id", userId)
+      .maybeSingle()
 
-      let updatedCases: AnalysisResult[] = [result]
-
-      if (data?.cases) {
-        const existingCases = data.cases as AnalysisResult[]
-        const deduped = existingCases.filter(c => c.caseId !== result.caseId)
-        updatedCases = [result, ...deduped]
-      }
-
-      // Upsert back to Supabase
-      const { error: upsertError } = await supabase
-        .from('user_cases')
-        .upsert({
-          user_id: userId,
-          cases: updatedCases,
-          updated_at: new Date().toISOString()
-        })
-
-      if (upsertError) console.error("Supabase upsert error:", upsertError)
-    } catch (err) {
-      console.error("Failed to persist to Supabase:", err)
+    if (fetchError) {
+      console.error("Supabase fetch error:", fetchError)
+      return
     }
+
+    let updatedCases: AnalysisResult[] = [result]
+
+    if (data?.cases) {
+      const existingCases = data.cases as AnalysisResult[]
+      const deduped = existingCases.filter((entry) => entry.caseId !== result.caseId)
+      updatedCases = [result, ...deduped]
+    }
+
+    const { error: upsertError } = await supabase.from("user_cases").upsert({
+      user_id: userId,
+      cases: updatedCases,
+      updated_at: new Date().toISOString(),
+    })
+
+    if (upsertError) {
+      console.error("Supabase upsert error:", upsertError)
+    }
+  } catch (err) {
+    console.error("Failed to persist to Supabase:", err)
   }
 }
 
@@ -91,11 +90,14 @@ export default function NewAnalysisPage() {
   const [analysisResult, setAnalysisResult] = useState<AnalysisResult | null>(null)
   const [error, setError] = useState("")
 
-  const handleResult = useCallback((result: AnalysisResult) => {
-    setAnalysisResult(result)
-    setError("")
-    persistRecentAnalysis(result, user?.sub)
-  }, [user?.sub])
+  const handleResult = useCallback(
+    (result: AnalysisResult) => {
+      setAnalysisResult(result)
+      setError("")
+      persistRecentAnalysis(result, user?.sub)
+    },
+    [user?.sub]
+  )
 
   const handleReset = () => {
     setAnalysisResult(null)
@@ -104,10 +106,10 @@ export default function NewAnalysisPage() {
 
   if (isLoading) {
     return (
-      <section className="mx-auto w-full max-w-5xl px-4 py-10 sm:px-6 lg:px-8">
-        <div className="rounded-xl border border-[var(--border)] bg-white p-8">
-          <h1 className="text-2xl font-semibold tracking-tight text-slate-900">New Analysis</h1>
-          <p className="mt-3 text-sm text-slate-600">Loading profile...</p>
+      <section className="section-shell">
+        <div className="paper-panel p-8">
+          <p className="eyebrow">Starting your claim</p>
+          <h1 className="section-title mt-4">Loading your workspace.</h1>
         </div>
       </section>
     )
@@ -115,95 +117,116 @@ export default function NewAnalysisPage() {
 
   if (!user) {
     return (
-      <section className="mx-auto w-full max-w-5xl px-4 py-10 sm:px-6 lg:px-8">
-        <div className="rounded-xl border border-[var(--border)] bg-white p-8">
-          <h1 className="text-2xl font-semibold tracking-tight text-slate-900">New Analysis</h1>
-          <p className="mt-3 text-sm text-slate-600">
-            Sign in to upload documents and run a billing analysis.
-          </p>
-          <button
-            onClick={() => loginWithRedirect()}
-            className="mt-6 inline-flex rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700"
-          >
-            Login with Auth0
-          </button>
+      <section className="section-shell">
+        <div className="grid gap-8 lg:grid-cols-[minmax(0,28rem)_minmax(0,1fr)] lg:items-center">
+          <div className="copy-column">
+            <p className="eyebrow">Start your claim</p>
+            <h1 className="display-md mt-4 text-balance">Sign in to upload your bill and insurer response.</h1>
+            <p className="body-copy mt-5">
+              The workflow is designed for people who need fast clarity, not more billing jargon. After sign-in you can upload the bill, EOB, and denial letter if you have one.
+            </p>
+            <div className="mt-8 flex flex-wrap gap-3">
+              <Button size="lg" onClick={() => loginWithRedirect()}>
+                Sign in to start
+              </Button>
+              <Button asChild variant="outline" size="lg">
+                <Link href="/#process">See the process</Link>
+              </Button>
+            </div>
+          </div>
+
+          <ClaimWorkspacePreview compact />
         </div>
       </section>
     )
   }
 
   return (
-    <section className="mx-auto w-full max-w-5xl px-4 py-10 sm:px-6 lg:px-8">
-      <div className="space-y-8">
-        <header className="flex flex-wrap items-end justify-between gap-4">
-          <div>
-            <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Analysis Workflow</p>
-            <h1 className="mt-1 text-2xl font-semibold tracking-tight text-slate-900">Start New Analysis</h1>
-            <p className="mt-2 text-sm text-slate-600">
-              Upload documents, investigate billing issues, and review recommended actions.
+    <div>
+      <section className="section-shell pb-10 pt-10 md:pb-12 md:pt-14">
+        <div className="flex flex-wrap items-center justify-between gap-4">
+          <div className="copy-column">
+            <Link
+              href="/dashboard"
+              className="inline-flex items-center gap-2 text-sm text-[var(--color-ink-700)] transition-colors hover:text-[var(--color-ink-900)]"
+            >
+              <ArrowLeft className="h-4 w-4" />
+              Back to cases
+            </Link>
+            <p className="eyebrow mt-5">Claim intake</p>
+            <h1 className="display-md mt-4 text-balance">
+              {analysisResult ? "Your claim review is ready." : "Upload the documents and we will translate them into a case."}
+            </h1>
+            <p className="body-copy mt-5">
+              {analysisResult
+                ? "Review the findings, understand the issue logic, and decide what to send next."
+                : "The goal is to get you to the first useful answer quickly: what looks wrong, what it means, and what the next step should be."}
             </p>
           </div>
-          <Link
-            href="/dashboard"
-            className="inline-flex rounded-md border border-[var(--border)] bg-white px-3 py-1.5 text-sm font-medium text-slate-700 hover:bg-slate-50"
-          >
-            Back to Dashboard
-          </Link>
-        </header>
 
-        {!analysisResult ? (
-          <section className="rounded-xl border border-[var(--border)] bg-white p-6">
-            <div className="mb-6">
-              <h2 className="text-lg font-semibold text-slate-900">Upload Documents</h2>
-              <p className="mt-2 text-sm text-slate-600">
-                Add the medical bill and EOB to begin review. A denial letter can be included if available.
-              </p>
-            </div>
-
-            {error && (
-              <div className="mb-4 flex items-start gap-3 rounded-lg border border-red-200 bg-red-50 px-4 py-3">
-                <svg className="mt-0.5 h-5 w-5 shrink-0 text-red-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                </svg>
-                <div className="flex-1">
-                  <p className="text-sm text-red-700">{error}</p>
-                </div>
-                <button onClick={() => setError("")} className="shrink-0 text-red-400 hover:text-red-600">
-                  <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                  </svg>
-                </button>
+          <div className="flex flex-wrap items-center gap-3">
+            {analysisResult ? (
+              <>
+                <Button size="lg" onClick={handleReset}>
+                  Review another case
+                </Button>
+                <Button asChild variant="outline" size="lg">
+                  <Link href="/dashboard">Open dashboard</Link>
+                </Button>
+              </>
+            ) : (
+              <div className="status-chip teal">
+                <ShieldCheck className="h-3.5 w-3.5" />
+                You review before anything is submitted
               </div>
             )}
+          </div>
+        </div>
+      </section>
 
-            <MultiUploadZone onResult={handleResult} onError={setError} />
-          </section>
-        ) : (
-          <section className="space-y-4">
-            <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-[var(--border)] bg-white px-4 py-3">
-              <div>
-                <p className="text-sm font-semibold text-slate-900">Analysis Complete</p>
-                <p className="text-xs text-slate-600">Case ID {analysisResult.caseId}</p>
-              </div>
-              <div className="flex items-center gap-2">
-                <button
-                  onClick={handleReset}
-                  className="inline-flex rounded-md bg-blue-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-blue-700"
-                >
-                  Analyze Another Case
-                </button>
-                <Link
-                  href="/dashboard"
-                  className="inline-flex rounded-md border border-[var(--border)] bg-white px-3 py-1.5 text-sm font-medium text-slate-700 hover:bg-slate-50"
-                >
-                  Return to Dashboard
-                </Link>
+      {!analysisResult ? (
+        <section className="section-shell pt-0">
+          <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_26rem]">
+            <div className="paper-panel p-6 md:p-8">
+              {error ? (
+                <div className="mb-6 rounded-[1.35rem] border border-[color-mix(in_srgb,var(--color-coral-400)_22%,var(--color-stone-200)_78%)] bg-[color-mix(in_srgb,var(--color-coral-400)_10%,var(--color-white)_90%)] px-4 py-3 text-sm text-[var(--color-coral-500)]">
+                  {error}
+                </div>
+              ) : null}
+
+              <MultiUploadZone onResult={handleResult} onError={setError} />
+            </div>
+
+            <div className="space-y-4">
+              <ClaimWorkspacePreview compact />
+
+              <div className="sage-panel p-6">
+                <div className="eyebrow">What you will get</div>
+                <ul className="mt-4 space-y-3">
+                  {[
+                    "A normalized bill and EOB review table",
+                    "Plain-language issue explanations",
+                    "Recommended dispute paths and draft-ready next steps",
+                  ].map((item) => (
+                    <li key={item} className="flex gap-3 text-sm leading-6 text-[var(--color-ink-700)]">
+                      <span className="mt-2 h-1.5 w-1.5 rounded-full bg-[var(--color-teal-500)]" />
+                      <span>{item}</span>
+                    </li>
+                  ))}
+                </ul>
+                <div className="mt-6 inline-flex items-center gap-2 text-sm font-semibold text-[var(--color-teal-700)]">
+                  The first useful outcome is clarity
+                  <ArrowRight className="h-4 w-4" />
+                </div>
               </div>
             </div>
-            <AnalysisResultDisplay key={analysisResult.caseId} result={analysisResult} progressive />
-          </section>
-        )}
-      </div>
-    </section>
+          </div>
+        </section>
+      ) : (
+        <section className="section-shell pt-0">
+          <AnalysisResultDisplay key={analysisResult.caseId} result={analysisResult} progressive />
+        </section>
+      )}
+    </div>
   )
 }

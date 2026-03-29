@@ -1,84 +1,100 @@
-"use client";
-import Link from "next/link";
-import { useAuth0 } from "@auth0/auth0-react";
+"use client"
+
+import Link from "next/link"
+import { usePathname } from "next/navigation"
+import { useAuth0 } from "@auth0/auth0-react"
+import { cn } from "@/lib/utils"
+
+const navigation = [
+  { href: "/", label: "Home" },
+  { href: "/analysis/new", label: "Start claim" },
+  { href: "/dashboard", label: "Cases" },
+  { href: "/legal", label: "Research" },
+]
 
 function getDisplayName(name?: string | null, email?: string | null) {
-  return name ?? email ?? "User";
+  return name ?? email ?? "User"
 }
 
 export function AppHeader() {
-  const { user, loginWithRedirect, logout, isLoading } = useAuth0();
-  const displayName = getDisplayName(user?.name, user?.email);
+  const pathname = usePathname()
+  const { user, loginWithRedirect, logout, isLoading } = useAuth0()
+  const displayName = getDisplayName(user?.name, user?.email)
 
   return (
-    <header className="sticky top-0 z-50 border-b border-[var(--border)] bg-white/95">
-      <div className="mx-auto flex h-14 w-full max-w-6xl items-center justify-between px-4 sm:px-6 lg:px-8">
-        <Link
-          href="/"
-          className="flex items-center gap-2 text-base font-semibold tracking-tight text-slate-900"
-        >
-          <span>Redline</span>
-          <span className="hidden text-xs font-medium text-slate-500 sm:inline">
-            Medical Billing Audit
-          </span>
-        </Link>
+    <header className="sticky top-0 z-50 border-b border-[var(--border)] bg-[color-mix(in_srgb,var(--color-stone-50)_88%,var(--color-white)_12%)]/95 backdrop-blur">
+      <div className="page-shell flex min-h-[4.75rem] items-center justify-between gap-4 py-3">
+        <div className="flex items-center gap-8">
+          <Link href="/" className="group">
+            <div className="font-[family:var(--font-display)] text-[1.6rem] leading-none tracking-[-0.03em] text-[var(--color-ink-900)]">
+              Redline
+            </div>
+            <div className="mt-1 text-[0.78rem] tracking-[0.12em] text-[var(--color-ink-500)] uppercase">
+              Claims workspace
+            </div>
+          </Link>
 
-        <nav className="flex items-center gap-2 sm:gap-3">
+          <nav className="hidden items-center gap-1 lg:flex">
+            {navigation.map((item) => {
+              const active =
+                item.href === "/"
+                  ? pathname === "/"
+                  : pathname === item.href || pathname.startsWith(`${item.href}/`)
+
+              return (
+                <Link
+                  key={item.href}
+                  href={item.href}
+                  className={cn(
+                    "rounded-full px-4 py-2 text-sm transition-colors",
+                    active
+                      ? "bg-[var(--color-stone-100)] text-[var(--color-ink-900)]"
+                      : "text-[var(--color-ink-700)] hover:bg-[var(--color-stone-100)] hover:text-[var(--color-ink-900)]"
+                  )}
+                >
+                  {item.label}
+                </Link>
+              )
+            })}
+          </nav>
+        </div>
+
+        <div className="flex items-center gap-3">
           {!isLoading && user ? (
             <>
-              <Link
-                href="/analysis/new"
-                className="rounded-md px-3 py-1.5 text-sm font-medium text-slate-600 hover:bg-slate-100 hover:text-slate-900"
-              >
-                New Analysis
-              </Link>
-              <Link
-                href="/legal"
-                className="rounded-md px-3 py-2 text-sm font-medium text-slate-600 hover:bg-slate-100 hover:text-slate-900"
-              >
-                Legal Research
-              </Link>
-              <Link
-                href="/dashboard"
-                className="rounded-md px-3 py-1.5 text-sm font-medium text-slate-600 hover:bg-slate-100 hover:text-slate-900"
-              >
-                Dashboard
-              </Link>
-              <div className="hidden items-center gap-2 rounded-md border border-[var(--border)] bg-slate-50 px-2.5 py-1 sm:flex">
-                {user.picture ? (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img
-                    src={user.picture}
-                    alt={displayName}
-                    className="h-6 w-6 rounded-full border border-[var(--border)] object-cover"
-                  />
-                ) : null}
-                <span
-                  className="max-w-36 truncate text-xs font-medium text-slate-700"
-                  title={displayName}
-                >
+              <div className="hidden rounded-full border border-[var(--border)] bg-[color-mix(in_srgb,var(--color-white)_65%,var(--color-stone-100)_35%)] px-4 py-2 md:block">
+                <div className="text-[0.72rem] uppercase tracking-[0.14em] text-[var(--color-ink-500)]">Signed in</div>
+                <div className="max-w-[12rem] truncate text-sm font-semibold text-[var(--color-ink-900)]" title={displayName}>
                   {displayName}
-                </span>
+                </div>
               </div>
               <button
-                onClick={() =>
-                  logout({ logoutParams: { returnTo: window.location.origin } })
-                }
-                className="rounded-md border border-[var(--border)] bg-white px-3 py-1.5 text-sm font-medium text-slate-700 hover:bg-slate-50"
+                onClick={() => logout({ logoutParams: { returnTo: window.location.origin } })}
+                className="inline-flex h-[44px] items-center justify-center rounded-full border border-[var(--border)] bg-[color-mix(in_srgb,var(--color-white)_74%,var(--color-stone-100)_26%)] px-4 text-sm font-semibold text-[var(--color-ink-900)] transition-all duration-200 hover:-translate-y-px hover:bg-[var(--color-stone-100)]"
               >
-                Logout
+                Log out
               </button>
             </>
           ) : !isLoading ? (
-            <button
-              onClick={() => loginWithRedirect()}
-              className="rounded-md bg-blue-600 px-4 py-1.5 text-sm font-medium text-white hover:bg-blue-700"
-            >
-              Login
-            </button>
-          ) : null}
-        </nav>
+            <>
+              <Link
+                href="/#process"
+                className="hidden rounded-full px-4 py-2 text-sm text-[var(--color-ink-700)] transition-colors hover:bg-[var(--color-stone-100)] hover:text-[var(--color-ink-900)] md:inline-flex"
+              >
+                See how it works
+              </Link>
+              <button
+                onClick={() => loginWithRedirect()}
+                className="inline-flex h-[48px] items-center justify-center rounded-full bg-[var(--color-teal-500)] px-5 text-sm font-semibold text-white shadow-[var(--shadow-soft)] transition-all duration-200 hover:-translate-y-px hover:bg-[var(--color-teal-600)] active:bg-[var(--color-teal-700)]"
+              >
+                Start your claim
+              </button>
+            </>
+          ) : (
+            <div className="h-12 w-32 animate-pulse rounded-full bg-[var(--color-stone-100)]" />
+          )}
+        </div>
       </div>
     </header>
-  );
+  )
 }
