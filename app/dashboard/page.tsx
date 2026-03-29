@@ -6,6 +6,10 @@ import { useMemo, useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import type { ActionCategory, AnalysisResult } from "@/types/analysis"
 import { supabase } from "@/lib/supabase"
+import { Button } from "@/components/ui/button"
+import { Spotlight } from "@/components/ui/spotlight"
+import { SplineSceneBasic } from "@/components/ui/spline-scene-basic"
+import StackedPanels from "@/components/ui/stacked-panels-cursor-intereactive-component"
 const RECENT_ANALYSES_STORAGE_KEY = "NIPS.recent-analyses.v1"
 const MAX_RECENT_ANALYSES = 5
 
@@ -244,6 +248,27 @@ export default function DashboardPage() {
             </button>
           </div>
         </header>
+
+        <section className="animate-fade-up relative overflow-hidden rounded-3xl border border-slate-800 bg-slate-950 p-6 sm:p-8">
+          <Spotlight className="-top-48 left-0" fill="#93c5fd" />
+          <div className="relative z-10 space-y-6">
+            <div className="space-y-4">
+              <p className="text-xs font-semibold uppercase tracking-[0.18em] text-blue-300">MedBill Agent</p>
+              <h2 className="text-3xl font-semibold tracking-tight text-white sm:text-5xl">
+                Catch hidden billing errors before they cost you more.
+              </h2>
+              <p className="max-w-2xl text-sm leading-6 text-slate-200 sm:text-base">
+                Upload your bill and EOB, run the audit engine, and launch provider outreach from one workspace with premium
+                visual guidance and faster next-step actions.
+              </p>
+              <Button asChild size="lg" className="shadow-sm transition-transform duration-300 hover:scale-[1.03]">
+                <Link href="/analysis/new">Start New Analysis</Link>
+              </Button>
+            </div>
+            <SplineSceneBasic />
+            <StackedPanels />
+          </div>
+        </section>
 
         <section className="rounded-xl border border-[var(--border)] bg-white p-6">
           <div className="mb-5">

@@ -5,6 +5,8 @@ import { useAuth0 } from "@auth0/auth0-react"
 import { useCallback, useState } from "react"
 import { MultiUploadZone } from "@/components/MultiUploadZone"
 import { AnalysisResultDisplay } from "@/components/AnalysisResult"
+import { Spotlight } from "@/components/ui/spotlight"
+import { GlowCard } from "@/components/ui/spotlight-card"
 import type { AnalysisResult } from "@/types/analysis"
 import { supabase } from "@/lib/supabase"
 
@@ -168,6 +170,7 @@ export default function NewAnalysisPage() {
 
   return (
     <section className="mx-auto w-full max-w-5xl px-4 py-10 sm:px-6 lg:px-8">
+      <Spotlight />
       <div className="space-y-8">
         <header className="flex flex-wrap items-end justify-between gap-4">
           <div>
@@ -186,7 +189,7 @@ export default function NewAnalysisPage() {
         </header>
 
         {!analysisResult ? (
-          <section className="rounded-xl border border-[var(--border)] bg-white p-6">
+          <GlowCard className="animate-fade-up p-6" customSize>
             <div className="mb-6">
               <h2 className="text-lg font-semibold text-slate-900">Upload Documents</h2>
               <p className="mt-2 text-sm text-slate-600">
@@ -211,7 +214,7 @@ export default function NewAnalysisPage() {
             )}
 
             <MultiUploadZone onResult={handleResult} onError={setError} />
-          </section>
+          </GlowCard>
         ) : (
           <section className="space-y-4">
             <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-[var(--border)] bg-white px-4 py-3">

@@ -1,8 +1,10 @@
 "use client";
-/* eslint-disable react-hooks/set-state-in-effect */
 
 import { useEffect, useMemo, useState } from "react";
 import type { AnalysisResult } from "@/types/analysis";
+import { Spotlight } from "@/components/ui/spotlight";
+import { GlowCard } from "@/components/ui/spotlight-card";
+import { MailCheck } from "lucide-react";
 
 const RECENT_ANALYSES_STORAGE_KEY = "NIPS.recent-analyses.v1";
 
@@ -47,6 +49,7 @@ export default function EmailComposerPage() {
   const [recipientType, setRecipientType] =
     useState<GeneratedDraft["recipientType"]>("provider");
   const [sendState, setSendState] = useState("");
+  const [sendingMode, setSendingMode] = useState<"draft" | "send" | null>(null);
 
   const [gmailConnectedEmail, setGmailConnectedEmail] = useState<string | null>(
     null,
@@ -115,34 +118,42 @@ export default function EmailComposerPage() {
   };
 
   const submitToGmail = async (mode: "draft" | "send") => {
-    setSendState("");
-    const res = await fetch("/api/gmail/send", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ mode, to, subject, body: emailBody }),
-    });
+    setSendingMode(mode);
+    try {
+      setSendState("");
+      const res = await fetch("/api/gmail/send", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ mode, to, subject, body: emailBody }),
+      });
 
-    const data = await res.json();
-    if (!res.ok) {
-      throw new Error(data.error ?? `Gmail ${mode} failed`);
+      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(data.error ?? `Gmail ${mode} failed`);
+      }
+
+      setSendState(
+        mode === "draft"
+          ? "Draft saved to Gmail successfully."
+          : "Email sent successfully.",
+      );
+      await refreshGoogleSession();
+    } finally {
+      setSendingMode(null);
     }
-
-    setSendState(
-      mode === "draft"
-        ? "Draft saved to Gmail successfully."
-        : "Email sent successfully.",
-    );
-    await refreshGoogleSession();
   };
 
   return (
     <section className="mx-auto w-full max-w-4xl px-4 py-10 sm:px-6 lg:px-8">
-      <div className="space-y-6 rounded-xl border border-[var(--border)] bg-white p-6">
+      <div className="relative">
+      <Spotlight className="-top-40 left-10" fill="#c4b5fd" />
+      <div className="animate-fade-up space-y-6 rounded-2xl border border-[var(--border)] bg-white/95 p-6 shadow-lg">
         <header>
           <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
             Take Action
           </p>
-          <h1 className="mt-1 text-2xl font-semibold tracking-tight text-slate-900">
+          <h1 className="mt-1 flex items-center gap-2 text-2xl font-semibold tracking-tight text-slate-900">
+            <MailCheck className="h-6 w-6 text-blue-600" />
             Email Providers
           </h1>
           <p className="mt-2 text-sm text-slate-600">
@@ -161,7 +172,7 @@ export default function EmailComposerPage() {
           </div>
         ) : null}
 
-        <div className="rounded-lg border border-[var(--border)] bg-slate-50 p-4 text-sm">
+        <GlowCard className="p-4 text-sm" customSize>
           <p className="font-medium text-slate-800">Connected Gmail</p>
           <p className="mt-1 text-slate-600">
             {gmailConnectedEmail
@@ -190,7 +201,7 @@ export default function EmailComposerPage() {
               Refresh connection
             </button>
           </div>
-        </div>
+        </GlowCard>
 
         {status === "loading" ? (
           <p className="text-sm text-slate-600">
@@ -207,7 +218,7 @@ export default function EmailComposerPage() {
             <input
               readOnly
               value={recipientType}
-              className="w-full rounded-md border border-[var(--border)] bg-slate-50 px-3 py-2 text-sm"
+              className="w-full rounded-md border border-[var(--border)] bg-slate-50 px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-400"
             />
           </label>
 
@@ -216,7 +227,7 @@ export default function EmailComposerPage() {
             <input
               value={to}
               onChange={(e) => setTo(e.target.value)}
-              className="w-full rounded-md border border-[var(--border)] px-3 py-2 text-sm"
+              className="w-full rounded-md border border-[var(--border)] px-3 py-2 text-sm transition-all duration-200 focus:border-blue-300 focus:outline-none focus:ring-2 focus:ring-blue-200"
             />
           </label>
 
@@ -225,7 +236,7 @@ export default function EmailComposerPage() {
             <input
               value={subject}
               onChange={(e) => setSubject(e.target.value)}
-              className="w-full rounded-md border border-[var(--border)] px-3 py-2 text-sm"
+              className="w-full rounded-md border border-[var(--border)] px-3 py-2 text-sm transition-all duration-200 focus:border-blue-300 focus:outline-none focus:ring-2 focus:ring-blue-200"
             />
           </label>
 
@@ -235,7 +246,7 @@ export default function EmailComposerPage() {
               value={emailBody}
               onChange={(e) => setEmailBody(e.target.value)}
               rows={16}
-              className="w-full rounded-md border border-[var(--border)] px-3 py-2 font-mono text-sm"
+              className="w-full rounded-md border border-[var(--border)] px-3 py-2 font-mono text-sm transition-all duration-200 focus:border-blue-300 focus:outline-none focus:ring-2 focus:ring-blue-200"
             />
           </label>
         </div>
@@ -246,18 +257,20 @@ export default function EmailComposerPage() {
             onClick={() =>
               submitToGmail("draft").catch((err) => setSendState(err.message))
             }
+            disabled={sendingMode !== null}
             className="rounded-md border border-[var(--border)] bg-white px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50"
           >
-            Save Draft to Gmail
+            {sendingMode === "draft" ? "Saving draft..." : "Save Draft to Gmail"}
           </button>
           <button
             type="button"
             onClick={() =>
               submitToGmail("send").catch((err) => setSendState(err.message))
             }
-            className="rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700"
+            disabled={sendingMode !== null}
+            className="rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white transition-transform duration-200 hover:scale-[1.02] hover:bg-blue-700 disabled:opacity-70"
           >
-            Send Email
+            {sendingMode === "send" ? "Sending..." : "Send Email"}
           </button>
         </div>
 
@@ -299,6 +312,7 @@ export default function EmailComposerPage() {
             )}
           </div>
         ) : null}
+      </div>
       </div>
     </section>
   );

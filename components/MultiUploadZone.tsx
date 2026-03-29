@@ -2,6 +2,7 @@
 
 import { useCallback, useRef, useState } from "react"
 import { Button } from "@/components/ui/button"
+import { GlowCard } from "@/components/ui/spotlight-card"
 import { cn } from "@/lib/utils"
 import type { AnalysisResult } from "@/types/analysis"
 
@@ -126,7 +127,7 @@ export function MultiUploadZone({ onResult, onError }: MultiUploadZoneProps) {
   return (
     <div className="space-y-5">
       {isLoading ? (
-        <div className="rounded-lg border border-[var(--border)] bg-slate-50 p-5">
+        <GlowCard className="animate-fade-up border-blue-100 p-5" customSize>
           <div className="flex items-center gap-2">
             <SpinnerIcon />
             <p className="text-sm font-semibold text-slate-900">Investigating billing documents</p>
@@ -141,7 +142,7 @@ export function MultiUploadZone({ onResult, onError }: MultiUploadZoneProps) {
               return (
                 <div
                   key={step}
-                  className={`flex items-center gap-2 rounded-md border px-3 py-2 text-sm ${
+                  className={`flex items-center gap-2 rounded-md border px-3 py-2 text-sm transition-all duration-300 ${
                     isCurrent
                       ? "border-blue-200 bg-blue-50 text-blue-900"
                       : isDone
@@ -161,7 +162,7 @@ export function MultiUploadZone({ onResult, onError }: MultiUploadZoneProps) {
               )
             })}
           </div>
-        </div>
+        </GlowCard>
       ) : null}
 
       {!isLoading ? (
@@ -171,7 +172,7 @@ export function MultiUploadZone({ onResult, onError }: MultiUploadZoneProps) {
             const isDragging = dragging === slot.key
 
             return (
-              <div key={slot.key} className="rounded-lg border border-[var(--border)] bg-slate-50/60 p-3">
+              <GlowCard key={slot.key} className="animate-fade-up p-3" customSize>
                 <div className="mb-2 flex items-center gap-2">
                   <p className="text-sm font-semibold text-slate-900">{slot.label}</p>
                   {slot.required ? (
@@ -202,11 +203,11 @@ export function MultiUploadZone({ onResult, onError }: MultiUploadZoneProps) {
                   }}
                   onDragLeave={() => setDragging(null)}
                   className={cn(
-                    "relative flex cursor-pointer items-center gap-4 rounded-lg border border-dashed px-4 py-4 transition-colors",
+                    "group relative flex cursor-pointer items-center gap-4 rounded-xl border border-dashed px-4 py-4 transition-all duration-300",
                     isDragging
-                      ? "border-blue-500 bg-blue-50"
+                      ? "border-blue-500 bg-blue-50 shadow-[0_0_0_2px_rgba(59,130,246,0.2)]"
                       : file
-                        ? "border-blue-300 bg-white"
+                        ? "border-blue-300 bg-white shadow-sm"
                         : "border-[var(--border)] bg-white hover:border-blue-300 hover:bg-slate-50"
                   )}
                 >
@@ -223,7 +224,7 @@ export function MultiUploadZone({ onResult, onError }: MultiUploadZoneProps) {
 
                   <div
                     className={cn(
-                      "flex h-10 w-10 shrink-0 items-center justify-center rounded-md",
+                      "flex h-10 w-10 shrink-0 items-center justify-center rounded-md transition-transform duration-300 group-hover:scale-105",
                       file ? "bg-blue-100" : "bg-slate-100"
                     )}
                   >
@@ -261,7 +262,7 @@ export function MultiUploadZone({ onResult, onError }: MultiUploadZoneProps) {
                     </button>
                   )}
                 </div>
-              </div>
+              </GlowCard>
             )
           })}
         </>
